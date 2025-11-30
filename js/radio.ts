@@ -209,11 +209,11 @@ export function cleanup(): void {
 /**
  * 初始化电台模块
  */
-const initRadio = (): void => {
+export function initRadio(): void {
   renderChannelList();
   bindEvents();
   // console.log('📻 电台模块已加载');
-};
+}
 
 // ... existing code ...
 
