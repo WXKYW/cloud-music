@@ -206,16 +206,11 @@ function showChannelList(): void {
 function cleanup(): void {
   // 清理逻辑
 }
-/**
- * 初始化电台模块
- */
+// ========== 初始化电台模块 ==========
 function initRadio(): void {
   renderChannelList();
   bindEvents();
-  // console.log('📻 电台模块已加载');
 }
 
-// ... existing code ...
-
-export { initRadio, cleanup }; // Explicit named export
-export default { initRadio, cleanup }; // Default export with reference
+export { initRadio, cleanup };
+export default { initRadio, cleanup };
