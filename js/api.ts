@@ -91,6 +91,10 @@ function detectApiFormat(apiUrl: string): {
 // 音乐API配置 - 优化：引入更稳定的公共源，移除对单一平台的依赖
 const API_SOURCES: ApiSource[] = [
   {
+    name: '我的 Zeabur API', // 用户指定为主源
+    url: 'https://music888.zeabur.app/',
+  },
+  {
     name: 'I-Meto API (Meting)', // 官方Meting实例，稳定性高
     url: 'https://api.i-meto.com/meting/api',
   },
@@ -101,10 +105,6 @@ const API_SOURCES: ApiSource[] = [
   {
     name: 'Wuenci API (Meting)', // 备用Meting源
     url: 'https://api.wuenci.com/meting/api/',
-  },
-  {
-    name: '我的 Zeabur API', // 保留作为备用
-    url: 'https://music888.zeabur.app/',
   },
   {
     name: 'GDStudio 主API',
@@ -118,16 +118,16 @@ let currentApiIndex = 0;
 // 播放专用API源优先级列表 - 优先使用响应速度快、支持高音质的源
 const PLAYBACK_API_SOURCES: ApiSource[] = [
   {
+    name: '我的 Zeabur API', // 用户指定为主源
+    url: 'https://music888.zeabur.app/',
+  },
+  {
     name: 'Cyril Studio API (NCM)', // NCM源通常解析链接速度更快
     url: 'https://music.cyrilstudio.top/',
   },
   {
     name: 'I-Meto API (Meting)',
     url: 'https://api.i-meto.com/meting/api',
-  },
-  {
-    name: '我的 Zeabur API',
-    url: 'https://music888.zeabur.app/',
   },
   {
     name: 'GDStudio 主API',
