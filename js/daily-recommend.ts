@@ -62,10 +62,30 @@ function initRecommendTab() {
   }
 }
 
+// 显示推荐歌曲
+async function displayRecommendSongs(songs: Song[], containerId: string = 'searchResults') {
+  const songsContainer = document.getElementById(containerId);
+  if (!songsContainer) {
+    console.error(`❌ 找不到容器: ${containerId}`);
+    return;
+  }
+
+  // 动态导入UI模块
+  const { displaySearchResults, showLoading } = await import('./ui.js');
+
+  // 显示加载状态（可选，如果渲染很快可以省略）
+  // showLoading(containerId);
+
+  // 使用统一的显示方法，自动包含批量操作功能
+  displaySearchResults(songs, containerId, songs);
+  
+  console.log(`✅ 已在 ${containerId} 显示 ${songs.length} 首推荐歌曲`);
+}
+
 // 加载每日推荐
-export async function loadDailyRecommend(forceRefresh: boolean = false) {
-  const songsContainer = document.getElementById('recommendSongs');
-  const dateElement = document.getElementById('recommendDate');
+export async function loadDailyRecommend(forceRefresh: boolean = false, containerId: string = 'searchResults') {
+  const songsContainer = document.getElementById(containerId);
+  // const dateElement = document.getElementById('recommendDate'); // 只有在独立推荐页才需要
 
   if (!songsContainer) return;
 
@@ -75,7 +95,10 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
       const cached = getCachedRecommend();
       if (cached) {
         currentRecommendSongs = cached.songs;
-        displayRecommendSongs(cached.songs);
+        await displayRecommendSongs(cached.songs, containerId);
+        
+        // 更新日期和标题 (仅当元素存在时)
+        const dateElement = document.getElementById('recommendDate');
         if (dateElement) {
           const typeText = cached.isPersonalized ? '个性化推荐' : '热门推荐';
           dateElement.textContent = `${typeText} - 更新时间: ${cached.date}`;
@@ -84,6 +107,8 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
       }
     }
 
+    // 只有在不是 searchResults 时才显示加载动画，避免覆盖已有的搜索结果
+    // 或者使用特定的 loading 样式
     songsContainer.innerHTML =
       '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 正在生成推荐...</div>';
 
@@ -133,9 +158,10 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
     cacheRecommend(songs, isPersonalized);
 
     // 显示推荐
-    displayRecommendSongs(songs);
+    await displayRecommendSongs(songs, containerId);
 
     // 更新日期和标题
+    const dateElement = document.getElementById('recommendDate');
     if (dateElement) {
       const today = new Date().toLocaleDateString('zh-CN');
       const typeText = isPersonalized ? '个性化推荐' : '热门推荐';
@@ -151,18 +177,6 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
     songsContainer.innerHTML = '<div class="error">加载失败，请重试</div>';
     showNotification('加载推荐失败', 'error');
   }
-}
-
-// 显示推荐歌曲
-async function displayRecommendSongs(songs: Song[]) {
-  const songsContainer = document.getElementById('recommendSongs');
-  if (!songsContainer) return;
-
-  // 动态导入UI模块
-  const { displaySearchResults } = await import('./ui.js');
-
-  // 使用统一的显示方法，自动包含批量操作功能
-  displaySearchResults(songs, 'recommendSongs', songs);
 }
 
 // 播放全部推荐
@@ -239,8 +253,8 @@ function shuffleArray<T>(array: T[]): T[] {
 
 // 在搜索结果区域加载每日推荐 (用于降级或其他用途)
 export async function loadDailyRecommendInSearch(forceRefresh: boolean = false) {
-  // 简单的重定向到主逻辑
-  await loadDailyRecommend(forceRefresh);
+  // 明确指定渲染到 searchResults 容器
+  await loadDailyRecommend(forceRefresh, 'searchResults');
 }
 
 // 刷新推荐

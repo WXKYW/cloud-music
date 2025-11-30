@@ -176,13 +176,46 @@ async function playChannel(channel: RadioChannel): Promise<void> {
   try {
     // 根据频道标签搜索歌曲
     let songs: Song[] = [];
+    
+    // P1优化: 改进关键词生成策略
+    let keywords: string[] = [];
+    
     if (channel.isFM) {
-      // 私人FM逻辑（暂用推荐接口替代）
-      songs = await api.searchMusicAPI('推荐', 'netease');
+      // 私人FM逻辑
+      keywords = ['私人推荐', '热歌', '流行', '华语'];
     } else {
-      // 使用标签搜索
-      const keyword = channel.tags[0] || channel.name;
-      songs = await api.searchMusicAPI(keyword, 'netease');
+      // 使用标签搜索，优先使用具体的风格标签
+      keywords = [...channel.tags];
+      // 添加通用后缀以增加匹配度
+      if (!keywords.some(k => k.includes('歌') || k.includes('曲'))) {
+        keywords.push(`${channel.name}歌单`);
+      }
+    }
+    
+    // 随机选择一个主要关键词进行搜索
+    const mainKeyword = keywords[Math.floor(Math.random() * keywords.length)];
+    console.log(`📻 [电台] 正在加载频道: ${channel.name}, 关键词: ${mainKeyword}`);
+    
+    // 第一次搜索
+    songs = await api.searchMusicAPI(mainKeyword, 'netease', 50);
+    
+    // 如果结果太少，尝试使用另一个不同的关键词补充
+    if (songs.length < 20 && keywords.length > 1) {
+      const fallbackKeywords = keywords.filter(k => k !== mainKeyword);
+      if (fallbackKeywords.length > 0) {
+        const secondKeyword = fallbackKeywords[Math.floor(Math.random() * fallbackKeywords.length)];
+        console.log(`📻 [电台] 结果不足，补充搜索: ${secondKeyword}`);
+        const moreSongs = await api.searchMusicAPI(secondKeyword, 'netease', 30);
+        
+        // 合并去重
+        const existingIds = new Set(songs.map(s => s.id));
+        moreSongs.forEach(s => {
+          if (!existingIds.has(s.id)) {
+            songs.push(s);
+            existingIds.add(s.id);
+          }
+        });
+      }
     }
 
     if (songs.length > 0) {

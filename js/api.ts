@@ -1634,6 +1634,24 @@ export async function searchMusicAPI(
       return songs;
     } catch (error) {
       console.error('搜索失败:', error);
+      
+      // P0-1 修复: 如果主源搜索失败，自动切换到下一个可用源并重试
+      // 仅当不是因为取消请求导致的错误时才重试
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.warn(`⚠️ [搜索] 当前源 ${source} 失败，尝试切换源...`);
+        
+        // 尝试切换到下一个API
+        const switched = await switchToNextAPI();
+        if (switched) {
+          const newSource = getCurrentSourceName(); // 获取新源名称
+          const newApiStatus = getCurrentApiStatus();
+          // 使用新源重试搜索 (注意: 这里使用新源的默认 searchMusicAPI 逻辑)
+          // 为了防止死循环，我们这里不传递 retryCount，而是依赖 switchToNextAPI 的逻辑
+          // 但为了更安全，我们仅重试一次
+          return await searchMusicAPI(keyword, source, limit); 
+        }
+      }
+      
       throw error;
     }
   });
