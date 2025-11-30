@@ -206,5 +206,16 @@ function showChannelList(): void {
 export function cleanup(): void {
   // 清理逻辑
 }
-// 默认导出，增强兼容性
-export default { initRadio, cleanup };
+/**
+ * 初始化电台模块
+ */
+const initRadio = (): void => {
+  renderChannelList();
+  bindEvents();
+  // console.log('📻 电台模块已加载');
+};
+
+// ... existing code ...
+
+export { initRadio, cleanup }; // Explicit named export
+export default { initRadio, cleanup }; // Default export with reference
