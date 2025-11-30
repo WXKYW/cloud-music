@@ -1,0 +1,193 @@
+/* 电台卡片样式 */
+.radio-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.radio-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card-color);
+  opacity: 0.1;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.radio-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--card-color);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.radio-card:hover::before {
+  opacity: 0.2;
+}
+
+.radio-icon {
+  font-size: 32px;
+  color: var(--card-color);
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.radio-info {
+  position: relative;
+  z-index: 1;
+}
+
+.radio-info h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.radio-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.radio-tags span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.radio-play-icon {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: var(--card-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.radio-play-icon i {
+  color: #fff;
+  font-size: 16px;
+  margin-left: 2px;
+}
+
+.radio-card:hover .radio-play-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 电台频道列表网格 */
+#radioChannelList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+/* 电台播放器界面 */
+.radio-player-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.radio-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.radio-info {
+  flex: 1;
+}
+
+.radio-info h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.radio-status {
+  font-size: 13px;
+  color: var(--primary-color);
+}
+
+.radio-song-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  #radioChannelList {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .radio-card {
+    height: 140px;
+    padding: 15px;
+  }
+
+  .radio-icon {
+    font-size: 24px;
+  }
+
+  .radio-info h3 {
+    font-size: 16px;
+  }
+
+  .radio-play-icon {
+    width: 32px;
+    height: 32px;
+    bottom: 15px;
+    right: 15px;
+    opacity: 1; /* 移动端默认显示播放按钮 */
+    transform: scale(1);
+  }
+}
