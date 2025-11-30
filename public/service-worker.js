@@ -73,7 +73,16 @@ self.addEventListener('fetch', (event) => {
     'music-api.gdstudio.org',
     'api.injahow.cn',
     'lx.sycdn.kuwo.cn',
-    'api.gdstudio.xyz'
+    'api.gdstudio.xyz',
+    // 网易云音乐CDN域名 (用于直连播放)
+    'm701.music.126.net',
+    'm801.music.126.net',
+    'm7.music.126.net',
+    'm8.music.126.net',
+    'm10.music.126.net',
+    'sy.music.163.com',
+    'p1.music.126.net',
+    'p2.music.126.net'
   ];
 
   // 如果是白名单域名，完全不拦截，让浏览器直接处理

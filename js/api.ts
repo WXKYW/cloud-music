@@ -47,63 +47,91 @@ function detectApiFormat(apiUrl: string): {
   format: 'gdstudio' | 'ncm' | 'meting' | 'clawcloud';
 } {
   const isGDStudio = apiUrl.includes('gdstudio');
-  const isNCM = apiUrl.includes('ncm-api.imixc.top');
-  const isMeting = apiUrl.includes('meting');
-  const isClawCloud = apiUrl.includes('clawcloudrun.com');
+  // 优化: 增强NCM格式识别，包含常用域名和关键词
+  const isNCM =
+    apiUrl.includes('ncm-api.imixc.top') ||
+    apiUrl.includes('music.cyrilstudio.top') || // Cyril Studio 源
+    apiUrl.includes('netease') || // 通用关键词
+    apiUrl.includes('163.com') ||
+    (apiUrl.includes('vercel.app') && !apiUrl.includes('meting')); // Vercel部署通常是NCM，除非明确包含meting
+
+  const isMeting = apiUrl.includes('meting') || apiUrl.includes('api.lwl12.com'); // LWL12也是Meting格式
+
+  // 优化: 支持 api-enhanced 源作为 clawcloud/ncm 格式
+  const isClawCloud = apiUrl.includes('clawcloudrun.com') || apiUrl.includes('api-enhanced');
+
+  let format: 'gdstudio' | 'ncm' | 'meting' | 'clawcloud';
+
+  if (isGDStudio) {
+    format = 'gdstudio';
+  } else if (isNCM) {
+    format = 'ncm';
+  } else if (isClawCloud) {
+    format = 'clawcloud';
+  } else if (isMeting) {
+    format = 'meting';
+  } else {
+    // 默认回退逻辑：如果URL以 /api 结尾或包含 .php，可能是 Meting/GDStudio；否则倾向于 NCM
+    if (apiUrl.endsWith('.php') || apiUrl.includes('?')) {
+      format = 'meting';
+    } else {
+      format = 'ncm'; // 现代RESTful API大多是NCM格式
+    }
+  }
 
   return {
-    isGDStudio,
-    isNCM,
-    isMeting,
-    isClawCloud,
-    format: isGDStudio ? 'gdstudio' : isNCM ? 'ncm' : isClawCloud ? 'clawcloud' : 'meting',
+    isGDStudio: format === 'gdstudio',
+    isNCM: format === 'ncm',
+    isMeting: format === 'meting',
+    isClawCloud: format === 'clawcloud',
+    format,
   };
 }
 
-// 音乐API配置 - 修复：移除失效的CORS代理，直接请求API
+// 音乐API配置 - 优化：引入更稳定的公共源，移除对单一平台的依赖
 const API_SOURCES: ApiSource[] = [
+  {
+    name: 'I-Meto API (Meting)', // 官方Meting实例，稳定性高
+    url: 'https://api.i-meto.com/meting/api',
+  },
+  {
+    name: 'Cyril Studio API (NCM)', // 也就是网易云API，支持CORS
+    url: 'https://music.cyrilstudio.top/',
+  },
+  {
+    name: 'Wuenci API (Meting)', // 备用Meting源
+    url: 'https://api.wuenci.com/meting/api/',
+  },
+  {
+    name: '我的 Zeabur API', // 保留作为备用
+    url: 'https://music888.zeabur.app/',
+  },
   {
     name: 'GDStudio 主API',
     url: 'https://music-api.gdstudio.xyz/api.php',
-  },
-  {
-    name: 'GDStudio 备用API',
-    url: 'https://music-api.gdstudio.org/api.php',
-  },
-  {
-    name: 'Meting备用API',
-    url: 'https://api.injahow.cn/meting/',
-  },
-  {
-    name: 'NCM增强API',
-    url: 'https://ncm-api.imixc.top/',
-  },
-  {
-    name: 'ClawCloud API (网易云增强)',
-    url: 'https://ncm-api-latest.onrender.com/',
   },
 ];
 
 let API_BASE = API_SOURCES[0].url;
 let currentApiIndex = 0;
 
-// 播放专用API源优先级列表 - 修复：使用正确的GDStudio API地址(仅.xyz有效)
+// 播放专用API源优先级列表 - 优先使用响应速度快、支持高音质的源
 const PLAYBACK_API_SOURCES: ApiSource[] = [
+  {
+    name: 'Cyril Studio API (NCM)', // NCM源通常解析链接速度更快
+    url: 'https://music.cyrilstudio.top/',
+  },
+  {
+    name: 'I-Meto API (Meting)',
+    url: 'https://api.i-meto.com/meting/api',
+  },
+  {
+    name: '我的 Zeabur API',
+    url: 'https://music888.zeabur.app/',
+  },
   {
     name: 'GDStudio 主API',
     url: 'https://music-api.gdstudio.xyz/api.php',
-  },
-  {
-    name: 'Meting备用API',
-    url: 'https://api.injahow.cn/meting/',
-  },
-  {
-    name: 'NCM增强API',
-    url: 'https://ncm-api.imixc.top/',
-  },
-  {
-    name: 'ClawCloud API (网易云增强)',
-    url: 'https://ncm-api-latest.onrender.com/',
   },
 ];
 
@@ -791,7 +819,7 @@ export async function findWorkingAPI(): Promise<{ success: boolean; name?: strin
     if (isWorking) {
       API_BASE = api.url;
       currentApiIndex = API_SOURCES.findIndex((a) => a.url === api.url);
-      return { success: true, name: api.name };
+      return { success: true, name: api.name, url: api.url };
     }
   }
   return { success: false };
@@ -1118,8 +1146,17 @@ async function getSongUrlFromApi(
         url = `${apiUrl}?types=url&source=${song.source}&id=${song.id}&br=${quality}`;
         break;
       case 'ncm':
-        // NCM API格式: /song/url?id=song_id&br=320
-        url = `${apiUrl}song/url?id=${song.id}&br=${quality}`;
+        // NCM API格式: /song/url?id=song_id&br=320000
+        // 修复: NCM API 需要 bps 单位 (320 -> 320000)
+        const brMap: Record<string, string> = {
+          '128': '128000',
+          '192': '192000',
+          '320': '320000',
+          '999': '999000',
+          flac: '999000',
+        };
+        const ncmBr = brMap[quality] || '320000';
+        url = `${apiUrl}song/url?id=${song.id}&br=${ncmBr}`;
         break;
       case 'clawcloud':
         // ClawCloud API = 网易云音乐API Enhanced,使用song/url/v1接口获取更高音质
@@ -1210,45 +1247,182 @@ async function getSongUrlFromApi(
   }
 }
 
-// 获取歌曲URL - 老王优化：使用播放专用API源列表，规避版权限制
+// 辅助函数：计算字符串相似度 (Levenshtein Distance) 的简化版 - 仅检查包含关系
+function isSimilar(str1: string, str2: string): boolean {
+  const s1 = str1.toLowerCase().replace(/\s/g, '');
+  const s2 = str2.toLowerCase().replace(/\s/g, '');
+  return s1.includes(s2) || s2.includes(s1);
+}
+
+// 辅助函数：解析时间字符串为秒数
+function parseDuration(duration: any): number {
+  if (typeof duration === 'number') return duration / 1000; // 假设毫秒
+  if (typeof duration === 'string') {
+    // 处理 mm:ss 格式
+    if (duration.includes(':')) {
+      const parts = duration.split(':');
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+    return parseInt(duration) / 1000;
+  }
+  return 0;
+}
+
+// 辅助函数：在其他源寻找匹配的歌曲 (增强版：增加时长比对)
+async function matchSongInOtherSources(
+  originalSong: Song
+): Promise<{ url: string; br: string; source: string } | null> {
+  // 备选源列表，按成功率排序
+  const fallbackSources = ['kugou', 'kuwo', 'tencent'];
+
+  const artistName = Array.isArray(originalSong.artist)
+    ? originalSong.artist[0]
+    : typeof originalSong.artist === 'string'
+      ? originalSong.artist
+      : '';
+
+  if (!originalSong.name || !artistName) return null;
+
+  const searchKeyword = `${originalSong.name} ${artistName}`;
+  // 获取原曲时长（秒），用于精确匹配
+  const originalDuration = parseDuration(
+    originalSong.duration || originalSong.dt || originalSong.time
+  );
+
+  console.log(`🔍 [自动解灰] 尝试在其他平台搜索: ${searchKeyword} (时长: ${originalDuration}s)`);
+
+  for (const source of fallbackSources) {
+    try {
+      // 1. 搜索
+      const gdApiUrl = 'https://music-api.gdstudio.xyz/api.php';
+      const searchUrl = `${gdApiUrl}?types=search&source=${source}&name=${encodeURIComponent(searchKeyword)}&count=10`; // 增加搜索数量以提高匹配率
+
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json();
+
+      if (!Array.isArray(searchData) || searchData.length === 0) continue;
+
+      // 2. 匹配 (找到最相似的一首)
+      const match = searchData.find((item) => {
+        // A. 检查歌名是否包含
+        const nameMatch = isSimilar(item.name, originalSong.name);
+        // B. 检查歌手是否包含
+        const artistStr = Array.isArray(item.artist) ? item.artist.join('') : item.artist;
+        const artistMatch = isSimilar(artistStr, artistName);
+
+        // C. 检查时长 (关键优化：防止匹配到 Remix 或 Live 版)
+        // 允许误差 ±5 秒
+        let durationMatch = true;
+        if (originalDuration > 0) {
+          // 尝试从不同字段获取时长
+          const itemDuration = parseDuration(item.duration || item.dt || item.time || 0);
+          if (itemDuration > 0) {
+            const diff = Math.abs(itemDuration - originalDuration);
+            durationMatch = diff <= 5; // 5秒误差
+            if (!durationMatch) {
+              // console.log(`   - 跳过时长不符项: ${item.name} (${itemDuration}s vs ${originalDuration}s)`);
+            }
+          }
+        }
+
+        return nameMatch && artistMatch && durationMatch;
+      });
+
+      if (match) {
+        console.log(`✅ [自动解灰] 在 ${source} 找到匹配歌曲: ${match.name} - ${match.artist}`);
+
+        // 3. 获取播放链接
+        const urlRes = await getSongUrlFromApi({ ...match, source }, '320', gdApiUrl);
+
+        if (urlRes.url) {
+          return {
+            url: urlRes.url,
+            br: urlRes.br,
+            source: source,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ [自动解灰] ${source} 搜索失败:`, error);
+    }
+  }
+
+  return null;
+}
+
+// 缓存失效方法
+export function invalidateSongCache(songId: string, source: string): void {
+  // 清除所有可能的音质缓存
+  const qualities = ['128', '320', '999', 'flac'];
+  qualities.forEach((q) => {
+    // 这里假设 getSongUrlFromApi 内部可能没有使用缓存，或者缓存是在 getSongUrl 层级管理的
+    // 实际上我们的 LRUCache 主要用于 search/playlist/info
+    // getSongUrl 内部并没有显式缓存 URL 结果（除了 album_cover 等），
+    // 但为了以防万一，我们清除相关的 key
+    // 注意：目前的 getSongUrl 实现其实并没有缓存 URL (因为 URL 有效期短)
+    // 如果未来添加了 URL 缓存，这里需要处理
+  });
+  console.log(`🧹 [缓存] 已尝试清理歌曲缓存: ${source}_${songId}`);
+}
+
+// 获取歌曲URL - 增强版：支持强制刷新和自动解灰
 export async function getSongUrl(
   song: Song,
-  quality: string
-): Promise<{ url: string; br: string; error?: string }> {
-  console.log(`🎵 [播放优化] 开始获取歌曲URL: ${song.name} (ID: ${song.id})`);
+  quality: string,
+  forceRefresh: boolean = false
+): Promise<{ url: string; br: string; error?: string; usedSource?: string }> {
+  console.log(`🎵 [播放获取] ${song.name} (ID: ${song.id}) [ForceRefresh: ${forceRefresh}]`);
 
   const errors: string[] = [];
 
-  // 遍历播放专用API源列表，优先使用备用API规避版权问题
+  // 如果强制刷新，这里可以执行一些清理逻辑
+  if (forceRefresh) {
+    invalidateSongCache(song.id, song.source);
+  }
+
+  // 1. 优先尝试原源 (Original Source)
   for (let i = 0; i < PLAYBACK_API_SOURCES.length; i++) {
     const apiSource = PLAYBACK_API_SOURCES[i];
-    console.log(
-      `🔄 [播放优化] 尝试API源 ${i + 1}/${PLAYBACK_API_SOURCES.length}: ${apiSource.name}`
-    );
+    const apiFormat = detectApiFormat(apiSource.url);
+    if (
+      (apiFormat.format === 'ncm' || apiFormat.format === 'clawcloud') &&
+      song.source !== 'netease'
+    ) {
+      continue;
+    }
 
     try {
       const result = await getSongUrlFromApi(song, quality, apiSource.url);
 
-      // 如果成功获取到URL，直接返回
       if (result.url) {
-        console.log(`✅ [播放优化] 成功从 ${apiSource.name} 获取音乐链接`);
+        console.log(`✅ [播放获取] 成功从 ${apiSource.name} 获取`);
         return result;
       }
 
-      // 记录错误
       if (result.error) {
         errors.push(`${apiSource.name}: ${result.error}`);
-        console.warn(`⚠️ [播放优化] ${apiSource.name} 返回错误: ${result.error}`);
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误';
       errors.push(`${apiSource.name}: ${errorMsg}`);
-      console.error(`❌ [播放优化] ${apiSource.name} 请求失败:`, errorMsg);
     }
   }
 
-  // 所有API源都失败，返回错误
-  console.error(`❌ [播放优化] 所有API源均失败，歌曲: ${song.name}`);
+  // 2. 自动解灰 (仅当原源是网易云且失败时)
+  if (song.source === 'netease') {
+    console.log('⚠️ [播放获取] 原源失败，启动智能解灰程序...');
+    const fallbackResult = await matchSongInOtherSources(song);
+
+    if (fallbackResult) {
+      return {
+        url: fallbackResult.url,
+        br: fallbackResult.br,
+        usedSource: fallbackResult.source,
+      };
+    }
+  }
+
+  console.error(`❌ [播放获取] 全部失败，歌曲: ${song.name}`);
   const combinedError =
     errors.length > 0 ? `尝试${errors.length}个API均失败 - ${errors[0]}` : '无法获取音乐链接';
 
@@ -2001,41 +2175,290 @@ export async function getArtistInfo(
     }
 
     // 规范化歌曲数据
-    result.songs = result.songs
-      .filter((song) => song && song.id)
-      .map((song: any) => {
-        const songInfo = extractSongInfo(song);
-        const artistInfo = extractArtistInfo(song);
-        const albumInfo = extractAlbumInfo(song);
-        const picId =
-          song.pic_id ||
-          song.cover ||
-          song.album_pic ||
-          song.pic ||
-          song?.al?.picStr ||
-          song?.album?.picStr ||
-          song?.album?.pic;
+    result.songs = result.songs.map((song: any) => {
+      const songInfo = extractSongInfo(song);
+      const artistInfo = extractArtistInfo(song);
+      const albumInfo = extractAlbumInfo(song);
+      const picId =
+        song.pic_id ||
+        song.cover ||
+        song.album_pic ||
+        song.pic ||
+        song?.al?.picStr ||
+        song?.album?.picStr ||
+        song?.album?.pic;
 
-        return {
-          ...song,
-          source: source,
-          name: songInfo,
-          artist: artistInfo,
-          album: albumInfo,
-          pic_id: picId,
-          rawData: song,
-        };
-      });
+      return {
+        ...song,
+        source: source,
+        name: songInfo,
+        artist: artistInfo,
+        album: albumInfo,
+        pic_id: picId,
+        rawData: song,
+      };
+    });
 
     cache.set(cacheKey, result, CacheCategory.ARTIST_INFO);
     return result;
   } catch (error) {
     console.error('获取歌手信息失败:', error);
-    return {
-      name: '未知歌手',
-      description: '',
-      songs: [],
-    };
+    return { name: '未知歌手', description: '', songs: [] };
+  }
+}
+
+// 获取歌手专辑列表
+export async function getArtistAlbums(
+  artistId: string,
+  source: string = 'netease',
+  limit: number = 30
+): Promise<any[]> {
+  const cacheKey = `artist_albums_${source}_${artistId}_${limit}`;
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    let url: string;
+
+    switch (apiFormat.format) {
+      case 'ncm':
+      case 'clawcloud':
+        url = `${API_BASE}artist/album?id=${artistId}&limit=${limit}`;
+        break;
+      case 'gdstudio':
+        // GDStudio 可能不支持专辑列表，尝试通用格式或返回空
+        url = `${API_BASE}?types=album&source=${source}&id=${artistId}`;
+        break;
+      default:
+        return [];
+    }
+
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+    let albums: any[] = [];
+
+    if (apiFormat.format === 'ncm' || apiFormat.format === 'clawcloud') {
+      if (data && data.hotAlbums) {
+        albums = data.hotAlbums;
+      }
+    } else if (Array.isArray(data)) {
+      albums = data;
+    }
+
+    // 规范化专辑数据
+    const normalizedAlbums = albums.map((album) => ({
+      id: album.id,
+      name: album.name,
+      picUrl: album.picUrl || album.pic_url || album.cover,
+      publishTime: album.publishTime || album.publish_time,
+      size: album.size || 0, // 歌曲数量
+      source: source,
+    }));
+
+    if (normalizedAlbums.length > 0) {
+      cache.set(cacheKey, normalizedAlbums, CacheCategory.ALBUM_INFO);
+    }
+
+    return normalizedAlbums;
+  } catch (error) {
+    console.warn('获取歌手专辑失败:', error);
+    return [];
+  }
+}
+
+// 获取歌手详细描述
+export async function getArtistDesc(artistId: string, source: string = 'netease'): Promise<string> {
+  const cacheKey = `artist_desc_${source}_${artistId}`;
+  const cached = cache.get<string>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    // 仅 NCM/ClawCloud 支持详情描述
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return '';
+    }
+
+    const url = `${API_BASE}artist/desc?id=${artistId}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    let desc = '';
+    if (data && data.briefDesc) {
+      desc = data.briefDesc;
+    }
+    if (data && data.introduction && Array.isArray(data.introduction)) {
+      // 拼接详细介绍
+      data.introduction.forEach((intro: any) => {
+        desc += `\n\n【${intro.ti}】\n${intro.txt}`;
+      });
+    }
+
+    if (desc) {
+      cache.set(cacheKey, desc, CacheCategory.ARTIST_INFO);
+    }
+    return desc;
+  } catch (error) {
+    console.warn('获取歌手描述失败:', error);
+    return '';
+  }
+}
+
+// 获取专辑内容（歌曲列表）
+export async function getAlbumSongs(albumId: string, source: string = 'netease'): Promise<Song[]> {
+  const cacheKey = `album_songs_${source}_${albumId}`;
+  const cached = cache.get<Song[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    let url: string;
+
+    switch (apiFormat.format) {
+      case 'ncm':
+      case 'clawcloud':
+        url = `${API_BASE}album?id=${albumId}`;
+        break;
+      default:
+        return [];
+    }
+
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+    let songs: any[] = [];
+
+    if ((apiFormat.format === 'ncm' || apiFormat.format === 'clawcloud') && data.songs) {
+      songs = data.songs;
+    }
+
+    // 规范化
+    const normalizedSongs = songs.map((song: any) => {
+      const songInfo = extractSongInfo(song);
+      const artistInfo = extractArtistInfo(song);
+      const albumInfo = extractAlbumInfo(song);
+      const picId = song.al?.picStr || song.album?.picStr || song.al?.pic || song.album?.pic;
+
+      return {
+        ...song,
+        source: source,
+        name: songInfo,
+        artist: artistInfo,
+        album: albumInfo,
+        pic_id: picId,
+        rawData: song,
+      };
+    });
+
+    if (normalizedSongs.length > 0) {
+      cache.set(cacheKey, normalizedSongs, CacheCategory.SONG_INFO);
+    }
+    return normalizedSongs;
+  } catch (error) {
+    console.warn('获取专辑歌曲失败:', error);
+    return [];
+  }
+}
+
+// 获取私人 FM (无需登录，匿名FM)
+export async function getPersonalFM(): Promise<Song[]> {
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    // 仅 NCM/ClawCloud 支持
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return [];
+    }
+
+    // 添加时间戳防止缓存
+    const url = `${API_BASE}personal_fm?timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.data && Array.isArray(data.data)) {
+      return data.data.map((song: any) => {
+        const songInfo = extractSongInfo(song);
+        const artistInfo = extractArtistInfo(song);
+        const albumInfo = extractAlbumInfo(song);
+        const picId = song.album?.picId || song.album?.picUrl; // FM 接口返回结构略有不同
+
+        return {
+          ...song,
+          source: 'netease', // FM 通常是网易云
+          name: songInfo,
+          artist: artistInfo,
+          album: albumInfo,
+          // FM 接口的图片通常在 album.picUrl
+          pic_url: song.album?.picUrl,
+          pic_id: picId,
+          rawData: song,
+        };
+      });
+    }
+    return [];
+  } catch (error) {
+    console.warn('获取私人FM失败:', error);
+    return [];
+  }
+}
+
+// 获取歌手 MV
+export async function getArtistMVs(artistId: string, limit: number = 20): Promise<any[]> {
+  const cacheKey = `artist_mvs_${artistId}_${limit}`;
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `${API_BASE}artist/mv?id=${artistId}&limit=${limit}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.mvs) {
+      const mvs = data.mvs.map((mv: any) => ({
+        id: mv.id,
+        name: mv.name,
+        imgurl: mv.imgurl,
+        imgurl16v9: mv.imgurl16v9,
+        duration: mv.duration,
+        playCount: mv.playCount,
+        publishTime: mv.publishTime,
+      }));
+      cache.set(cacheKey, mvs, CacheCategory.ARTIST_INFO);
+      return mvs;
+    }
+    return [];
+  } catch (error) {
+    console.warn('获取歌手MV失败:', error);
+    return [];
+  }
+}
+
+// 获取热门歌手 (动态补充)
+export async function getTopArtists(limit: number = 50): Promise<any[]> {
+  const cacheKey = `top_artists_${limit}`;
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `${API_BASE}top/artists?limit=${limit}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.artists) {
+      const artists = data.artists.map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        picUrl: a.picUrl || a.img1v1Url,
+        score: a.score,
+        albumSize: a.albumSize,
+        musicSize: a.musicSize,
+      }));
+      cache.set(cacheKey, artists, CacheCategory.ARTIST_INFO);
+      return artists;
+    }
+    return [];
+  } catch (error) {
+    console.warn('获取热门歌手失败:', error);
+    return [];
   }
 }
 
@@ -2532,6 +2955,152 @@ export async function getArtistTopSongs(artistId: string): Promise<{
   } catch (error) {
     console.error('获取歌手热门歌曲失败:', error);
     return { artist: { id: artistId, name: '未知歌手', picUrl: '' }, songs: [] };
+  }
+}
+
+// ========== 认证与用户接口 ==========
+
+// 1. 生成二维码 Key
+export async function getQrKey(): Promise<string | null> {
+  try {
+    const url = `${API_BASE}login/qr/key?timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+    return data?.data?.unikey || null;
+  } catch (error) {
+    console.error('获取二维码Key失败:', error);
+    return null;
+  }
+}
+
+// 2. 生成二维码图片 (Base64)
+export async function createQrImage(key: string): Promise<string | null> {
+  try {
+    const url = `${API_BASE}login/qr/create?key=${key}&qrimg=true&timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+    return data?.data?.qrimg || null;
+  } catch (error) {
+    console.error('生成二维码失败:', error);
+    return null;
+  }
+}
+
+// 3. 检查二维码状态
+// 800: 过期, 801: 等待扫码, 802: 待确认, 803: 授权登录成功
+export async function checkQrStatus(
+  key: string
+): Promise<{ code: number; message: string; cookie?: string }> {
+  try {
+    const url = `${API_BASE}login/qr/check?key=${key}&timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+    return {
+      code: data.code,
+      message: data.message,
+      cookie: data.cookie,
+    };
+  } catch (error) {
+    console.error('检查二维码状态失败:', error);
+    return { code: 500, message: '网络错误' };
+  }
+}
+
+// 4. 获取登录状态
+export async function getLoginStatus(): Promise<{
+  isLogin: boolean;
+  profile?: any;
+  account?: any;
+}> {
+  try {
+    // 使用 cookie (浏览器会自动携带)
+    const url = `${API_BASE}login/status?timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.data && data.data.profile) {
+      return { isLogin: true, profile: data.data.profile, account: data.data.account };
+    }
+    return { isLogin: false };
+  } catch (error) {
+    // console.warn('获取登录状态失败 (可能未登录):', error);
+    return { isLogin: false };
+  }
+}
+
+// 5. 退出登录
+export async function logout(): Promise<boolean> {
+  try {
+    const url = `${API_BASE}logout?timestamp=${Date.now()}`;
+    await fetchWithRetry(url);
+    return true;
+  } catch (error) {
+    console.error('退出登录失败:', error);
+    return false;
+  }
+}
+
+// 6. 获取每日推荐歌曲 (需登录)
+export async function getDailyRecommendSongs(): Promise<Song[]> {
+  try {
+    const url = `${API_BASE}recommend/songs?timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.data && data.data.dailySongs) {
+      return data.data.dailySongs.map((song: any) => {
+        const songInfo = extractSongInfo(song);
+        const artistInfo = extractArtistInfo(song);
+        const albumInfo = extractAlbumInfo(song);
+        const picId = song.al?.picStr || song.al?.pic || song.album?.picUrl;
+
+        return {
+          ...song,
+          source: 'netease',
+          name: songInfo,
+          artist: artistInfo,
+          album: albumInfo,
+          pic_id: picId,
+          rawData: song,
+        };
+      });
+    }
+    return [];
+  } catch (error) {
+    console.warn('获取每日推荐歌曲失败:', error);
+    return [];
+  }
+}
+
+// 7. 获取用户歌单
+export async function getUserPlaylists(uid: string): Promise<any[]> {
+  const cacheKey = `user_playlists_${uid}`;
+  // 歌单列表不宜缓存太久，设为 5 分钟 (在 api.ts 内部暂无此分类，使用 DEFAULT)
+  // 为了及时性，这里暂时不使用强制缓存，或者使用短缓存
+
+  try {
+    const url = `${API_BASE}user/playlist?uid=${uid}&limit=50&timestamp=${Date.now()}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.playlist) {
+      return data.playlist.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        coverImgUrl: p.coverImgUrl,
+        playCount: p.playCount,
+        trackCount: p.trackCount,
+        creator: {
+          nickname: p.creator.nickname,
+          userId: p.creator.userId,
+        },
+        isCreator: p.creator.userId.toString() === uid, // 是否是自己创建的
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('获取用户歌单失败:', error);
+    return [];
   }
 }
 

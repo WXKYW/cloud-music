@@ -6,6 +6,35 @@
 import { PROXY_CONFIG, API_CONFIG } from './config.js';
 
 /**
+ * 判断是否应该跳过代理直接连接
+ * 用于解决FLAC大文件经过Vercel代理超时的问题
+ */
+export function shouldBypassProxy(url: string, quality: string): boolean {
+  if (!url) return false;
+
+  // 检查是否是高音质 (FLAC/Hi-Res)
+  const isHighQuality = quality === '999000' || quality === 'flac' || quality === '999';
+
+  if (!isHighQuality) return false;
+
+  // 检查是否是可信域名
+  const trustedDomains = [
+    'music.163.com',
+    'y.qq.com',
+    'm701.music.126.net',
+    'm801.music.126.net',
+    'm7.music.126.net',
+    'm8.music.126.net',
+    'm10.music.126.net',
+    'sy.music.163.com',
+    'p1.music.126.net',
+    'p2.music.126.net',
+  ];
+
+  return trustedDomains.some((domain) => url.includes(domain));
+}
+
+/**
  * 判断URL是否需要使用代理
  */
 export function needsProxy(url: string, source?: string): boolean {
@@ -15,7 +44,7 @@ export function needsProxy(url: string, source?: string): boolean {
     const urlObj = new URL(url);
 
     // 检查是否是需要代理的源
-    if (source && API_CONFIG.PROXY_SOURCES.includes(source as any)) {
+    if (source && (API_CONFIG.PROXY_SOURCES as readonly string[]).includes(source)) {
       return true;
     }
 

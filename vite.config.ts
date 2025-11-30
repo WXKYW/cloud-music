@@ -35,7 +35,7 @@ export default defineConfig({
           'player-core': ['./js/player.ts', './js/player-helpers.ts'],
 
           // 2. API层（独立分离，便于缓存）
-          api: ['./js/api.ts', './js/extra-api-adapter.ts', './js/proxy-handler.ts'],
+          api: ['./js/api.ts', './js/proxy-handler.ts'],
 
           // 3. UI和主题（视觉相关）
           'ui-theme': ['./js/ui.ts', './js/theme-manager.ts'],

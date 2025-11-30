@@ -313,12 +313,12 @@ function detectErrorType(message: string): ErrorType {
  */
 function getErrorTypeHint(errorType: ErrorType): string {
   const hints: Record<ErrorType, string> = {
-    [ErrorType.COPYRIGHT]: '版权保护',
+    [ErrorType.COPYRIGHT]: '版权保护，建议切换其他平台音源',
     [ErrorType.EMPTY_RESOURCE]: '音乐源无此资源',
-    [ErrorType.TIMEOUT]: '网络超时',
-    [ErrorType.NETWORK]: '网络连接失败',
+    [ErrorType.TIMEOUT]: '网络超时，建议切换网络或稍后重试',
+    [ErrorType.NETWORK]: '网络连接失败，请检查网络',
     [ErrorType.PARSE]: '数据解析失败',
-    [ErrorType.UNKNOWN]: '',
+    [ErrorType.UNKNOWN]: '请重试',
   };
 
   return hints[errorType] || '';

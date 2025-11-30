@@ -113,10 +113,12 @@ function saveStats(): void {
 export function recordPlay(song: Song, duration: number = 0): void {
   if (!song || !song.id) return;
   const id = String(song.id);
-  const artist =
-    Array.isArray(song.artist) && song.artist.length > 0
-      ? song.artist.join(', ')
-      : song.artist || '未知';
+  let artist = '未知';
+  if (Array.isArray(song.artist) && song.artist.length > 0) {
+    artist = song.artist.join(', ');
+  } else if (typeof song.artist === 'string' && song.artist) {
+    artist = song.artist;
+  }
 
   if (!currentStats.songs[id]) {
     currentStats.songs[id] = {

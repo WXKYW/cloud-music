@@ -51,9 +51,9 @@ export const PROXY_CONFIG = {
  */
 export const DOWNLOAD_CONFIG = {
   /** 批量下载每批数量 */
-  BATCH_SIZE: 3,
+  BATCH_SIZE: 2,
   /** 批次间延迟（毫秒） */
-  BATCH_DELAY: 1000,
+  BATCH_DELAY: 1500,
 } as const;
 
 /**

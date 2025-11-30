@@ -1,16 +1,15 @@
 // js/daily-recommend.ts - 每日推荐功能
 
-import { parsePlaylistAPI, type Song } from './api';
-import { playSong } from './player';
-import { showNotification } from './ui';
-// 老王优化：改为动态导入，优化代码分割
+import { parsePlaylistAPI, getDailyRecommendSongs, type Song } from './api.js';
+import { playSong } from './player.js';
+import { showNotification } from './ui.js';
 
 // 每日推荐配置
 const DAILY_RECOMMEND_CONFIG = {
   STORAGE_KEY: 'daily_recommend',
   SONGS_COUNT: 30, // 每日推荐歌曲数量
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 缓存时长24小时
-  USE_QQ_DAILY: true, // 老王添加：是否优先使用QQ音乐每日推荐
+  USE_QQ_DAILY: false, // 禁用QQ推荐，只使用NCM
 };
 
 // 推荐源配置
@@ -24,16 +23,21 @@ interface DailyRecommendCache {
   date: string;
   songs: Song[];
   timestamp: number;
+  isPersonalized?: boolean;
 }
 
 let currentRecommendSongs: Song[] = [];
-// 保留用于后续功能扩展
-const _isRecommendVisible = false;
 
 // 初始化每日推荐
 export function initDailyRecommend() {
   // 初始化推荐标签页内的内容
   initRecommendTab();
+
+  // 监听用户登录事件，登录后自动刷新推荐
+  window.addEventListener('userLoggedIn', () => {
+    console.log('👤 用户已登录，刷新个性化推荐...');
+    loadDailyRecommend(true);
+  });
 }
 
 // 初始化推荐标签页
@@ -73,7 +77,8 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
         currentRecommendSongs = cached.songs;
         displayRecommendSongs(cached.songs);
         if (dateElement) {
-          dateElement.textContent = `更新时间: ${cached.date}`;
+          const typeText = cached.isPersonalized ? '个性化推荐' : '热门推荐';
+          dateElement.textContent = `${typeText} - 更新时间: ${cached.date}`;
         }
         return;
       }
@@ -82,75 +87,65 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
     songsContainer.innerHTML =
       '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 正在生成推荐...</div>';
 
-    // 老王添加：优先尝试QQ音乐每日30首推荐
-    if (DAILY_RECOMMEND_CONFIG.USE_QQ_DAILY) {
-      try {
-        console.log('📦 尝试使用QQ音乐每日推荐...');
-        const { getQQDaily30 } = await import('./extra-api-adapter.js');
-        const qqDailySongs = await getQQDaily30();
+    let songs: Song[] = [];
+    let isPersonalized = false;
 
-        if (qqDailySongs && qqDailySongs.length > 0) {
-          console.log(`✅ QQ音乐每日推荐获取成功，共${qqDailySongs.length}首`);
-          currentRecommendSongs = qqDailySongs;
+    // 1. 尝试获取个性化每日推荐 (需登录)
+    try {
+      const dailySongs = await getDailyRecommendSongs();
+      if (dailySongs.length > 0) {
+        console.log(`✅ 获取到 ${dailySongs.length} 首个性化推荐歌曲`);
+        songs = dailySongs;
+        isPersonalized = true;
+      }
+    } catch (e) {
+      console.log('无需登录或获取个性化推荐失败，降级到榜单推荐');
+    }
 
-          // 缓存推荐
-          cacheRecommend(qqDailySongs);
-
-          // 显示推荐
-          displayRecommendSongs(qqDailySongs);
-
-          // 更新日期
-          if (dateElement) {
-            const today = new Date().toLocaleDateString('zh-CN');
-            dateElement.textContent = `QQ音乐每日推荐 - 更新时间: ${today}`;
-          }
-
-          showNotification(`QQ音乐为你推荐${qqDailySongs.length}首歌曲`, 'success');
-          return;
+    // 2. 降级方案：榜单混合推荐
+    if (songs.length === 0) {
+      const allSongs: Song[] = [];
+      for (const source of RECOMMEND_SOURCES) {
+        try {
+          const result = await parsePlaylistAPI(source.id, source.source);
+          const count = Math.floor(DAILY_RECOMMEND_CONFIG.SONGS_COUNT * source.weight);
+          const randomSongs = shuffleArray(result.songs).slice(0, count);
+          allSongs.push(...randomSongs);
+        } catch (error) {
+          console.error(`获取榜单 ${source.id} 失败:`, error);
         }
-      } catch (qqError) {
-        console.warn('⚠️ QQ音乐每日推荐获取失败，使用默认推荐方式:', qqError);
-        // 继续执行下面的默认推荐逻辑
+      }
+
+      if (allSongs.length > 0) {
+        songs = shuffleArray(allSongs).slice(0, DAILY_RECOMMEND_CONFIG.SONGS_COUNT);
       }
     }
 
-    // 默认推荐方式：从多个榜单获取歌曲
-    const allSongs: Song[] = [];
-
-    for (const source of RECOMMEND_SOURCES) {
-      try {
-        const result = await parsePlaylistAPI(source.id, source.source);
-        const count = Math.floor(DAILY_RECOMMEND_CONFIG.SONGS_COUNT * source.weight);
-        const randomSongs = shuffleArray(result.songs).slice(0, count);
-        allSongs.push(...randomSongs);
-      } catch (error) {
-        console.error(`获取榜单 ${source.id} 失败:`, error);
-      }
-    }
-
-    if (allSongs.length === 0) {
+    if (songs.length === 0) {
       songsContainer.innerHTML = '<div class="error">获取推荐失败，请稍后重试</div>';
       showNotification('获取推荐失败', 'error');
       return;
     }
 
-    // 随机打乱并取指定数量
-    const recommendSongs = shuffleArray(allSongs).slice(0, DAILY_RECOMMEND_CONFIG.SONGS_COUNT);
-    currentRecommendSongs = recommendSongs;
+    currentRecommendSongs = songs;
 
     // 缓存推荐
-    cacheRecommend(recommendSongs);
+    cacheRecommend(songs, isPersonalized);
 
     // 显示推荐
-    displayRecommendSongs(recommendSongs);
+    displayRecommendSongs(songs);
 
-    // 更新日期
+    // 更新日期和标题
     if (dateElement) {
       const today = new Date().toLocaleDateString('zh-CN');
-      dateElement.textContent = `更新时间: ${today}`;
+      const typeText = isPersonalized ? '个性化推荐' : '热门推荐';
+      dateElement.textContent = `${typeText} - 更新时间: ${today}`;
     }
 
-    showNotification(`已为你推荐${recommendSongs.length}首歌曲`, 'success');
+    const msg = isPersonalized
+      ? `已为你生成 ${songs.length} 首个性化推荐`
+      : `已为你推荐 ${songs.length} 首热门歌曲`;
+    showNotification(msg, 'success');
   } catch (error) {
     console.error('加载每日推荐失败:', error);
     songsContainer.innerHTML = '<div class="error">加载失败，请重试</div>';
@@ -158,7 +153,7 @@ export async function loadDailyRecommend(forceRefresh: boolean = false) {
   }
 }
 
-// 显示推荐歌曲 - 老王修复：使用displaySearchResults统一显示，支持批量操作
+// 显示推荐歌曲
 async function displayRecommendSongs(songs: Song[]) {
   const songsContainer = document.getElementById('recommendSongs');
   if (!songsContainer) return;
@@ -179,11 +174,12 @@ function playAllRecommend() {
 }
 
 // 缓存推荐
-function cacheRecommend(songs: Song[]) {
+function cacheRecommend(songs: Song[], isPersonalized: boolean = false) {
   const cache: DailyRecommendCache = {
     date: new Date().toLocaleDateString('zh-CN'),
     songs: songs,
     timestamp: Date.now(),
+    isPersonalized,
   };
 
   try {
@@ -193,15 +189,11 @@ function cacheRecommend(songs: Song[]) {
 
     // 处理配额超限
     if (error.name === 'QuotaExceededError' || error.code === 22) {
-      console.warn('localStorage配额已满，尝试清理旧数据');
       try {
-        // 清理旧的推荐缓存
         localStorage.removeItem(DAILY_RECOMMEND_CONFIG.STORAGE_KEY);
-        // 重试
         localStorage.setItem(DAILY_RECOMMEND_CONFIG.STORAGE_KEY, JSON.stringify(cache));
       } catch (retryError) {
         console.error('清理后仍然无法缓存:', retryError);
-        showNotification('缓存空间不足，推荐数据未保存', 'warning');
       }
     }
   }
@@ -231,7 +223,6 @@ function getCachedRecommend(): DailyRecommendCache | null {
 
     return data;
   } catch (error) {
-    console.error('读取缓存失败:', error);
     return null;
   }
 }
@@ -246,85 +237,13 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-// 在搜索结果区域加载每日推荐
+// 在搜索结果区域加载每日推荐 (用于降级或其他用途)
 export async function loadDailyRecommendInSearch(forceRefresh: boolean = false) {
-  const searchResults = document.getElementById('searchResults');
-  if (!searchResults) return;
-
-  try {
-    // 显示加载状态
-    searchResults.innerHTML =
-      '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 正在生成每日推荐...</div>';
-
-    let songs: Song[] = [];
-
-    // 检查缓存
-    if (!forceRefresh) {
-      const cached = getCachedRecommend();
-      if (cached) {
-        songs = cached.songs;
-        showNotification(`已加载${songs.length}首推荐歌曲`, 'success');
-      }
-    }
-
-    // 如果没有缓存或强制刷新，则获取新推荐
-    if (songs.length === 0) {
-      // 优先尝试QQ音乐每日推荐
-      if (DAILY_RECOMMEND_CONFIG.USE_QQ_DAILY) {
-        try {
-          console.log('📦 尝试使用QQ音乐每日推荐...');
-          const { getQQDaily30 } = await import('./extra-api-adapter.js');
-          const qqDailySongs = await getQQDaily30();
-
-          if (qqDailySongs && qqDailySongs.length > 0) {
-            console.log(`✅ QQ音乐每日推荐获取成功，共${qqDailySongs.length}首`);
-            songs = qqDailySongs;
-            cacheRecommend(qqDailySongs);
-            showNotification(`QQ音乐为你推荐${qqDailySongs.length}首歌曲`, 'success');
-          }
-        } catch (qqError) {
-          console.warn('⚠️ QQ音乐每日推荐获取失败，使用默认推荐方式:', qqError);
-        }
-      }
-
-      // 如果QQ推荐失败，使用默认推荐方式
-      if (songs.length === 0) {
-        const allSongs: Song[] = [];
-        for (const source of RECOMMEND_SOURCES) {
-          try {
-            const result = await parsePlaylistAPI(source.id, source.source);
-            const count = Math.floor(DAILY_RECOMMEND_CONFIG.SONGS_COUNT * source.weight);
-            const randomSongs = shuffleArray(result.songs).slice(0, count);
-            allSongs.push(...randomSongs);
-          } catch (error) {
-            console.error(`获取榜单 ${source.id} 失败:`, error);
-          }
-        }
-
-        if (allSongs.length === 0) {
-          searchResults.innerHTML = '<div class="error">获取推荐失败，请稍后重试</div>';
-          showNotification('获取推荐失败', 'error');
-          return;
-        }
-
-        songs = shuffleArray(allSongs).slice(0, DAILY_RECOMMEND_CONFIG.SONGS_COUNT);
-        cacheRecommend(songs);
-        showNotification(`已为你推荐${songs.length}首歌曲`, 'success');
-      }
-    }
-
-    // 使用UI模块显示结果
-    currentRecommendSongs = songs;
-    const { displaySearchResults } = await import('./ui.js');
-    displaySearchResults(songs, 'searchResults', songs);
-  } catch (error) {
-    console.error('加载每日推荐失败:', error);
-    searchResults.innerHTML = '<div class="error">加载失败，请重试</div>';
-    showNotification('加载推荐失败', 'error');
-  }
+  // 简单的重定向到主逻辑
+  await loadDailyRecommend(forceRefresh);
 }
 
-// 刷新推荐（强制刷新）
+// 刷新推荐
 export async function refreshRecommend() {
   await loadDailyRecommend(true);
 }

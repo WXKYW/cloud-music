@@ -18,7 +18,8 @@ import lyricsWorkerManager from './lyrics-worker-manager.js';
 // BUG-004修复: 引入安全的localStorage操作函数
 import { safeSetItem, safeGetItem } from './storage-utils.js';
 // BUG-006修复: 引入统一的代理处理
-import { getProxiedUrl } from './proxy-handler.js';
+import { getProxiedUrl, shouldBypassProxy } from './proxy-handler.js';
+import { playbackAnalytics } from './playback-analytics.js';
 // 引入IndexedDB存储
 import indexedDB from './indexed-db.js';
 
@@ -347,13 +348,36 @@ export async function playSong(
     let urlData: { url: string; br: string; error?: string; usedSource?: string } | null = null;
     let successQuality = '';
     let lastError = '';
-    const _usedFallback = false;
 
     // 依次尝试各个品质
-    for (const quality of qualityQueue) {
+    for (let i = 0; i < qualityQueue.length; i++) {
+      const quality = qualityQueue[i];
+
+      // P0-2 优化: 检查 PlaybackAnalytics 是否建议跳过该歌曲的此音源
+      if (playbackAnalytics.shouldSkip(song.id, song.source, quality)) {
+        console.warn(
+          `⚠️ [播放] 跳过歌曲 ${song.name} 的 ${
+            QUALITY_NAMES[quality] || quality
+          } 音源，因历史失败记录.`
+        );
+        ui.showNotification(
+          `歌曲《${song.name}》的 ${
+            QUALITY_NAMES[quality] || quality
+          } 音源因频繁失败已被跳过，正在尝试其他品质/音源...`,
+          'warning'
+        );
+        // 记录跳过信息 (如果需要进一步分析)
+        // playbackAnalytics.recordSkip(song.id, song.source, quality);
+        continue; // 跳过当前品质，尝试下一个
+      }
+
       try {
+        // 策略：如果是重试（之前失败过）或者尝试第二种音质，则强制刷新缓存
+        // 防止因为缓存了 403/404 的死链导致重试无效
+        const shouldForceRefresh = consecutiveFailures > 0 || i > 0;
+
         // 先尝试原始音乐源
-        const result = await api.getSongUrl(song, quality);
+        const result = await api.getSongUrl(song, quality, shouldForceRefresh);
 
         // 如果原始源失败,尝试下一个品质
         if (result && result.url) {
@@ -365,6 +389,8 @@ export async function playSong(
         }
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
+        // Record failure for this specific quality attempt
+        playbackAnalytics.recordFailure(song.id, song.source, lastError, quality);
         continue;
       }
     }
@@ -373,12 +399,11 @@ export async function playSong(
       // 播放成功,重置连续失败计数
       consecutiveFailures = 0;
 
-      // 提示音乐源切换信息
-      if (_usedFallback && urlData.usedSource) {
-        ui.showNotification(
-          `已从备用音乐源 ${SOURCE_NAMES[urlData.usedSource] || urlData.usedSource} 获取`,
-          'success'
-        );
+      // 提示音乐源切换信息 (自动解灰成功)
+      if (urlData.usedSource) {
+        const sourceName = SOURCE_NAMES[urlData.usedSource] || urlData.usedSource;
+        ui.showNotification(`已自动切换到 ${sourceName} 源播放`, 'success');
+        console.log(`✅ [自动解灰] 成功切换到 ${sourceName}`);
       }
 
       // 提示品质降级信息
@@ -395,8 +420,15 @@ export async function playSong(
         lyricsDownloadBtn.disabled = false;
       }
 
-      // BUG-006修复: 统一使用代理处理函数
-      const finalUrl = getProxiedUrl(urlData.url, song.source);
+      // BUG-P0-1修复: FLAC音质且URL可信任时，跳过代理，直接连接
+      // 避免Vercel 10秒超时限制
+      let finalUrl: string;
+      if (shouldBypassProxy(urlData.url, successQuality)) {
+        finalUrl = urlData.url.replace(/^http:/, 'https:'); // Ensure HTTPS even for direct
+        console.log('🚀 直连高音质源 (跳过代理):', finalUrl);
+      } else {
+        finalUrl = getProxiedUrl(urlData.url, song.source);
+      }
       audioPlayer.src = finalUrl;
 
       console.log('🎵 播放URL:', {
@@ -409,6 +441,7 @@ export async function playSong(
 
       // 添加到播放历史
       addToPlayHistory(song);
+      playbackAnalytics.recordSuccess();
 
       const lyricsData = await api.getLyrics(song);
       console.log('🎵 [歌词] API返回数据:', {
@@ -437,29 +470,31 @@ export async function playSong(
           title: song.name,
           artist: Array.isArray(song.artist) ? song.artist.join(', ') : song.artist,
           album: song.album || '',
-          artwork: coverUrl ? [
-            { src: coverUrl, sizes: '96x96', type: 'image/jpeg' },
-            { src: coverUrl, sizes: '128x128', type: 'image/jpeg' },
-            { src: coverUrl, sizes: '192x192', type: 'image/jpeg' },
-            { src: coverUrl, sizes: '256x256', type: 'image/jpeg' },
-            { src: coverUrl, sizes: '384x384', type: 'image/jpeg' },
-            { src: coverUrl, sizes: '512x512', type: 'image/jpeg' },
-          ] : [],
+          artwork: coverUrl
+            ? [
+                { src: coverUrl, sizes: '96x96', type: 'image/jpeg' },
+                { src: coverUrl, sizes: '128x128', type: 'image/jpeg' },
+                { src: coverUrl, sizes: '192x192', type: 'image/jpeg' },
+                { src: coverUrl, sizes: '256x256', type: 'image/jpeg' },
+                { src: coverUrl, sizes: '384x384', type: 'image/jpeg' },
+                { src: coverUrl, sizes: '512x512', type: 'image/jpeg' },
+              ]
+            : [],
         });
 
         // 设置播放控制处理器
         navigator.mediaSession.setActionHandler('play', () => {
           audioPlayer.play();
         });
-        
+
         navigator.mediaSession.setActionHandler('pause', () => {
           audioPlayer.pause();
         });
-        
+
         navigator.mediaSession.setActionHandler('previoustrack', () => {
           previousSong();
         });
-        
+
         navigator.mediaSession.setActionHandler('nexttrack', () => {
           nextSong();
         });
@@ -537,6 +572,9 @@ export async function playSong(
       setTimeout(() => nextSong(), PLAYER_CONFIG.RETRY_DELAY);
     }
   } catch (error) {
+    // This catch block handles general errors in playSong, not specific song/quality fetch failures.
+    // Individual quality failures are now recorded inside the loop.
+    // Do not record failure here, as it's not a specific song/quality failure.
     consecutiveFailures++;
 
     // 优化: 连续失败2次后先尝试切换API源
@@ -628,7 +666,7 @@ export function togglePlay(): void {
     isPlaying = false;
     ui.updatePlayButton(false);
     window.dispatchEvent(new Event('songPaused'));
-    
+
     // 更新 Media Session 状态
     if ('mediaSession' in navigator) {
       navigator.mediaSession.playbackState = 'paused';
@@ -643,7 +681,7 @@ export function togglePlay(): void {
           isPlaying = true;
           ui.updatePlayButton(true);
           window.dispatchEvent(new Event('songPlaying'));
-          
+
           // 更新 Media Session 状态
           if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = 'playing';

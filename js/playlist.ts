@@ -162,7 +162,10 @@ async function loadPlaylistDetail(playlistId: string, playlistName?: string): Pr
     }
 
     displaySearchResults(songs, 'playlistSongs', songs);
-    showNotification(`成功加载《${playlistName || result.name}》，共 ${songs.length} 首歌曲`, 'success');
+    showNotification(
+      `成功加载《${playlistName || result.name}》，共 ${songs.length} 首歌曲`,
+      'success'
+    );
   } catch (error) {
     console.error('加载歌单详情失败:', error);
     container.innerHTML = `

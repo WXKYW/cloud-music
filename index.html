@@ -39,10 +39,10 @@
                 <span>沄听</span>
             </div>
             <div class="search-container">
-                <form class="search-wrapper">
+                <form class="search-wrapper" id="searchForm">
                     <span class="search-source-badge" aria-hidden="true">网易云</span>
-                    <input type="text" class="search-input" placeholder="搜索网易云音乐、歌手、专辑... (按回车搜索)" id="searchInput" required>
-                    <button type="button" class="search-btn" title="搜索歌曲 (或按回车键)">
+                    <input type="text" class="search-input" placeholder="搜索网易云音乐、歌手、专辑... (按回车搜索)" id="searchInput">
+                    <button type="submit" class="search-btn" title="搜索歌曲 (或按回车键)">
                         <i class="fas fa-search"></i>
                         <span class="search-btn-text">搜索</span>
                     </button>
@@ -63,6 +63,9 @@
                 </button>
                 <button class="tab-btn" data-tab="playlist">
                     <i class="fas fa-list-music"></i> 歌单
+                </button>
+                <button class="tab-btn" data-tab="radio">
+                    <i class="fas fa-broadcast-tower"></i> 电台
                 </button>
             </div>
 
@@ -86,10 +89,44 @@
                 </div>
             </div>
 
-            <!-- 老王重构：歌手标签页 - 使用按钮分类导航 -->
+            <!-- 老王重构：歌手标签页 - 增强版 -->
             <div id="artistTab" class="tab-content">
-                <div id="artistContainer" class="artist-container">
-                    <!-- 动态生成：类型/地区/首字母按钮 → 歌手列表 → 歌手详情 -->
+                <!-- 歌手列表视图 -->
+                <div id="artistListContainer">
+                    <div id="artistFilters" class="artist-filters">
+                        <!-- 动态生成筛选器 -->
+                    </div>
+                    <div id="artistGrid" class="artist-grid">
+                        <!-- 动态生成歌手卡片 -->
+                    </div>
+                </div>
+                
+                <!-- 歌手详情视图 -->
+                <div id="artistDetailContainer" class="artist-detail-container" style="display: none;">
+                    <div class="artist-detail-header">
+                        <button class="back-btn" id="artistBackBtn"><i class="fas fa-arrow-left"></i> 返回</button>
+                        <h3 id="artistDetailName">歌手详情</h3>
+                    </div>
+                    
+                    <div class="artist-tabs">
+                        <button class="artist-tab-btn active" data-tab="songs">热门歌曲</button>
+                        <button class="artist-tab-btn" data-tab="albums">专辑</button>
+                        <button class="artist-tab-btn" data-tab="mvs">MV</button>
+                        <button class="artist-tab-btn" data-tab="info">简介</button>
+                    </div>
+
+                    <div class="artist-tab-content" id="artistSongsTab">
+                        <div id="artistSongsList" class="search-results"></div>
+                    </div>
+                    <div class="artist-tab-content" id="artistAlbumsTab" style="display: none;">
+                        <div id="artistAlbumsList" class="artist-albums-list"></div>
+                    </div>
+                    <div class="artist-tab-content" id="artistMvsTab" style="display: none;">
+                        <div id="artistMVsList" class="artist-mvs-list"></div>
+                    </div>
+                    <div class="artist-tab-content" id="artistInfoTab" style="display: none;">
+                        <div id="artistDescText" class="artist-desc-text"></div>
+                    </div>
                 </div>
             </div>
 
@@ -107,6 +144,26 @@
                 </div>
                 <div id="playlistContainer" class="playlist-container">
                     <!-- 动态生成：大分类按钮(排行榜/热门歌单/网友精选碟) → 小分类按钮 → 列表 → 详情 -->
+                </div>
+            </div>
+
+            <!-- 新增：电台标签页 -->
+            <div id="radioTab" class="tab-content">
+                <div id="radioChannelList" class="radio-channel-list">
+                    <!-- 动态生成电台频道 -->
+                </div>
+                
+                <div id="radioPlayerContainer" class="radio-player-container" style="display: none;">
+                    <div class="radio-header">
+                        <button class="back-btn" id="radioBackBtn"><i class="fas fa-arrow-left"></i> 换频道</button>
+                        <div class="radio-info">
+                            <h3 id="radioCurrentChannel">未知频道</h3>
+                            <span id="radioStatus" class="radio-status">正在连接...</span>
+                        </div>
+                    </div>
+                    <div id="radioSongList" class="search-results radio-song-list">
+                        <!-- 电台播放列表 -->
+                    </div>
                 </div>
             </div>
         </div>

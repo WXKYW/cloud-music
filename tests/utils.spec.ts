@@ -184,7 +184,7 @@ describe('Utils - 错误处理', () => {
 
   test('formatErrorMessage 应该处理字符串错误', () => {
     const message = formatErrorMessage('简单错误', '');
-    expect(message).toBe('简单错误');
+    expect(message).toBe('简单错误 - 请重试');
   });
 
   test('formatErrorMessage 应该处理空资源错误', () => {

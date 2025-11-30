@@ -11,11 +11,13 @@ import performanceMonitor from './performance-monitor.js';
 import { validateSearchKeyword, validatePlaylistId } from './input-validator.js';
 import { logger } from './logger.js';
 import { errorMonitor } from './error-monitor.js';
-import { onboardingManager } from './onboarding.js';
+import './onboarding.js';
+import { initAuth } from './auth.js'; // 新增：认证模块
 
 // 优化: 使用动态导入实现代码分割，减少初始加载时间
 let artistModule: any = null; // 老王改：原discover模块改为artist
 let playlistModule: any = null; // 老王改：新的playlist模块（整合了rank）
+let radioModule: any = null; // 新增：电台模块
 let dailyRecommendModule: any = null;
 let playStatsModule: any = null;
 let imageLazyLoader: any = null;
@@ -77,6 +79,7 @@ let appInitialized = false;
 const moduleLoadStatus = {
   artist: false, // 老王改：原discover改为artist
   playlist: false, // 老王改：原rank整合到playlist
+  radio: false, // 新增：电台
   dailyRecommend: false,
   playStats: false,
   imageLoader: false,
@@ -109,6 +112,8 @@ export function switchTab(tabName: string): void {
     loadArtistModule();
   } else if (tabName === 'playlist') {
     loadPlaylistModule();
+  } else if (tabName === 'radio') {
+    loadRadioModule();
   }
 }
 
@@ -140,6 +145,7 @@ function handleTouchStart(e: Event): void {
   _isSwiping = false;
   hasMovedEnough = false;
   swipeDirection = 'none';
+  initialDirection = null; // Reset initial direction
 }
 
 /**
@@ -156,29 +162,33 @@ function handleTouchMove(e: Event): void {
     return;
   }
 
-  // 修复：检查触摸目标，如果在播放器内容区域，允许垂直滚动
-  const target = touchEvent.target as HTMLElement;
-  const isInPlayerContent = target.closest('.player-content');
-  const isInLyricsContainer = target.closest('.lyrics-container-inline');
-  const isInStatsContent = target.closest('.stats-content-inline');
-
-  // 如果在播放器内容、歌词或统计区域，允许自然滚动，不干预
-  if (isInPlayerContent || isInLyricsContainer || isInStatsContent) {
-    return;
-  }
-
   const currentX = touchEvent.changedTouches[0].screenX;
   const currentY = touchEvent.changedTouches[0].screenY;
   const deltaX = Math.abs(currentX - touchStartX);
   const deltaY = Math.abs(currentY - touchStartY);
 
-  // 优化: 更早地判断滑动方向，阈值降低到20px
+  // 在可滚动区域内，优先判定为垂直滚动
+  const target = touchEvent.target as HTMLElement;
+  const isInPlayerContent = target.closest('.player-content');
+  const isInLyricsContainer = target.closest('.lyrics-container-inline');
+  const isInStatsContent = target.closest('.stats-content-inline');
+  const isInScrollableArea = isInPlayerContent || isInLyricsContainer || isInStatsContent;
+
+  // 首次移动时确定方向，之后保持该方向
+  if (!initialDirection && (deltaX > 10 || deltaY > 10)) {
+    if (isInScrollableArea && deltaY > deltaX * 1.2) {
+      initialDirection = 'vertical';
+    } else if (deltaX > deltaY * 1.2) {
+      initialDirection = 'horizontal';
+    }
+  }
+
+  // 优化: 更早地判断滑动方向，阈值降低到20px (如果initialDirection已确定，则沿用)
   if (swipeDirection === 'none' && (deltaX > 20 || deltaY > 20)) {
-    // 优化: 使用更宽松的比例判断（1.5倍）提高准确性
-    if (deltaX > deltaY * 1.5) {
+    if (initialDirection === 'horizontal') {
       swipeDirection = 'horizontal';
       _isSwiping = true;
-    } else if (deltaY > deltaX * 1.5) {
+    } else if (initialDirection === 'vertical') {
       swipeDirection = 'vertical';
     }
   }
@@ -354,7 +364,7 @@ function handleSongPlaying(e: Event): void {
   const song = customEvent.detail?.song;
   if (song) {
     updatePageTitle(song, true);
-    
+
     // 修复BUG-P2-04: 移动端播放时延迟跳转，避免打断用户浏览
     if (window.innerWidth <= 768) {
       setTimeout(() => {
@@ -436,6 +446,9 @@ async function initializeApp(): Promise<void> {
   // 增强功能：动态页面标题
   initDynamicPageTitle();
 
+  // 新增：初始化用户认证
+  initAuth();
+
   // API初始化 - 优先恢复用户偏好的API
   ui.showNotification('正在连接音乐服务...', 'info');
   try {
@@ -513,22 +526,22 @@ async function initializeApp(): Promise<void> {
     console.error('❌ 搜索输入框未找到！选择器: #searchInput');
   }
 
-  // 关键修复：优先绑定表单submit事件，阻止页面刷新
+  // 🔥 关键修复：使用命名函数绑定，支持自动清理
   if (searchForm) {
-    registerEventListener(searchForm, 'submit', handleSearchFormSubmit as EventListener);
-    console.log('✅ 表单submit事件已绑定（优先级最高）');
+    registerEventListener(searchForm, 'submit', handleSearchFormSubmit);
+    // console.log('✅ 表单submit事件已绑定');
   }
 
   if (searchBtn && searchInput) {
-    console.log('✅ 开始绑定搜索事件监听器...');
+    // console.log('✅ 开始绑定搜索事件监听器...');
 
-    // 搜索按钮点击（冗余保护）
-    registerEventListener(searchBtn, 'click', handleSearchButtonClick as EventListener);
-    console.log('✅ 搜索按钮click事件已绑定');
+    // 搜索按钮点击
+    registerEventListener(searchBtn, 'click', handleSearchButtonClick);
+    // console.log('✅ 搜索按钮click事件已绑定');
 
-    // 回车键搜索（冗余保护）
-    registerEventListener(searchInput, 'keypress', handleSearchInputKeypress as EventListener);
-    console.log('✅ 回车键事件已绑定');
+    // 回车键搜索
+    registerEventListener(searchInput, 'keypress', handleSearchInputKeypress);
+    // console.log('✅ 回车键事件已绑定');
   } else {
     console.error('❌ 搜索功能初始化失败：缺少必要元素', {
       searchBtn: !!searchBtn,
@@ -606,6 +619,8 @@ async function initializeApp(): Promise<void> {
         await loadArtistModule();
       } else if (tab === 'playlist' && !moduleLoadStatus.playlist) {
         await loadPlaylistModule();
+      } else if (tab === 'radio' && !moduleLoadStatus.radio) {
+        await loadRadioModule();
       }
 
       switchTab(tab);
@@ -723,6 +738,23 @@ async function loadPlaylistModule(): Promise<void> {
   }
 }
 
+// 新增：按需加载电台模块
+async function loadRadioModule(): Promise<void> {
+  if (moduleLoadStatus.radio && radioModule) return;
+
+  try {
+    console.log('📦 加载电台模块...');
+    radioModule = await import('./radio.js');
+    radioModule.initRadio();
+    moduleLoadStatus.radio = true;
+    console.log('✅ 电台模块加载完成');
+  } catch (error) {
+    console.error('❌ 电台模块加载失败:', error);
+    moduleLoadStatus.radio = false;
+    radioModule = null;
+  }
+}
+
 // 优化: 按需加载每日推荐模块
 async function loadDailyRecommendModule(): Promise<void> {
   if (moduleLoadStatus.dailyRecommend && dailyRecommendModule) return;
@@ -823,45 +855,12 @@ async function handleSearch(): Promise<void> {
 
   try {
     // 老王优化：先尝试主API搜索
-    let songs = await api.searchMusicAPI(keyword, source);
-
-    // 老王优化：如果主API结果少于10首，尝试聚合搜索补充
-    if (songs.length < 10) {
-      console.log(`⚠️ 主API仅返回${songs.length}首，尝试聚合搜索补充...`);
-      try {
-        const { aggregateSearch } = await import('./extra-api-adapter.js');
-        const extraSongs = await aggregateSearch(keyword);
-
-        if (extraSongs.length > 0) {
-          console.log(`✅ 聚合搜索找到${extraSongs.length}首歌曲`);
-
-          // 修复BUG-P2-03: 合并结果并去重（基于歌曲名+排序后的艺术家）
-          const existingSongKeys = new Set(
-            songs.map((s) => {
-              const artists = Array.isArray(s.artist) ? s.artist.sort().join(',') : s.artist;
-              return `${s.name}_${artists}`;
-            })
-          );
-
-          const uniqueExtraSongs = extraSongs.filter((s) => {
-            const artists = Array.isArray(s.artist) ? s.artist.sort().join(',') : s.artist;
-            const key = `${s.name}_${artists}`;
-            return !existingSongKeys.has(key);
-          });
-
-          songs = [...songs, ...uniqueExtraSongs];
-          console.log(`✅ 合并后共${songs.length}首歌曲`);
-        }
-      } catch (aggregateError) {
-        console.warn('⚠️ 聚合搜索失败:', aggregateError);
-        // 继续使用主API结果
-      }
-    }
+    const songs = await api.searchMusicAPI(keyword, source);
 
     if (songs.length > 0) {
       ui.displaySearchResults(songs, 'searchResults', songs);
       ui.showNotification(`找到 ${songs.length} 首歌曲`, 'success');
-      
+
       // 移动端搜索后自动聚焦到搜索结果
       if (window.innerWidth <= 768) {
         // 延迟执行，确保结果已渲染
@@ -1166,6 +1165,7 @@ let touchStartTime = 0;
 let _isSwiping = false;
 let hasMovedEnough = false;
 let swipeDirection: 'horizontal' | 'vertical' | 'none' = 'none';
+let initialDirection: 'horizontal' | 'vertical' | null = null;
 
 const mainContainer = document.querySelector('.main-container');
 

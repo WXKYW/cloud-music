@@ -276,11 +276,21 @@ class OnboardingManager {
     `;
 
     // 绑定事件
-    this.tooltip.querySelector('.onboarding-close-btn')?.addEventListener('click', () => this.skip());
-    this.tooltip.querySelector('.onboarding-skip-btn')?.addEventListener('click', () => this.skip());
-    this.tooltip.querySelector('.onboarding-prev-btn')?.addEventListener('click', () => this.prev());
-    this.tooltip.querySelector('.onboarding-next-btn')?.addEventListener('click', () => this.next());
-    this.tooltip.querySelector('.onboarding-finish-btn')?.addEventListener('click', () => this.finish());
+    this.tooltip
+      .querySelector('.onboarding-close-btn')
+      ?.addEventListener('click', () => this.skip());
+    this.tooltip
+      .querySelector('.onboarding-skip-btn')
+      ?.addEventListener('click', () => this.skip());
+    this.tooltip
+      .querySelector('.onboarding-prev-btn')
+      ?.addEventListener('click', () => this.prev());
+    this.tooltip
+      .querySelector('.onboarding-next-btn')
+      ?.addEventListener('click', () => this.next());
+    this.tooltip
+      .querySelector('.onboarding-finish-btn')
+      ?.addEventListener('click', () => this.finish());
 
     // 定位提示框
     this.positionTooltip(step);
@@ -395,7 +405,7 @@ class OnboardingManager {
    */
   private finish(completed: boolean = true): void {
     this.cleanup();
-    
+
     if (completed) {
       storage.set(this.config.storageKey, 'true');
       logger.info('新手引导完成');
