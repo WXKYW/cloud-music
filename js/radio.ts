@@ -203,7 +203,7 @@ function showChannelList(): void {
   if (playerContainer) playerContainer.style.display = 'none';
 }
 
-export function cleanup(): void {
+function cleanup(): void {
   // 清理逻辑
 }
 /**

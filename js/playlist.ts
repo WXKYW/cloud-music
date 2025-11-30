@@ -28,7 +28,7 @@ function clearCurrentListeners(): void {
   registeredEventListeners.length = 0;
 }
 
-export function cleanup(): void {
+function cleanup(): void {
   clearCurrentListeners();
 }
 
