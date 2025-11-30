@@ -159,9 +159,6 @@ function renderArtistList(artists: any[]): void {
     .map(
       (artist) => `
     <div class="artist-card" data-id="${artist.id}" data-name="${artist.name}">
-      <div class="artist-img-container">
-        <img src="${artist.picUrl}?param=200y200" loading="lazy" class="artist-cover" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0Ij7imas8L3RleHQ+PC9zdmc+'">
-      </div>
       <div class="artist-name">${extractPureArtistName(artist.name)}</div>
     </div>
   `
