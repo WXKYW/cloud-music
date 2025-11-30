@@ -17,8 +17,8 @@ interface RadioChannel {
   isFM?: boolean;
 }
 
-// 电台频道定义
-const RADIO_CHANNELS: RadioChannel[] = [
+// 电台频道定义 - 使用精选歌单ID
+const RADIO_CHANNELS: (RadioChannel & { playlistId?: string })[] = [
   {
     id: 'personal_fm',
     name: '私人FM',
@@ -26,6 +26,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     color: '#E91E63',
     tags: [],
     isFM: true,
+    playlistId: '3778678', // 热歌榜作为备用FM源
   },
   {
     id: 'study',
@@ -33,6 +34,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-book-reader',
     color: '#4CAF50',
     tags: ['学习', '专注', '轻音乐', 'Study'],
+    playlistId: '26467411', // 学习歌单
   },
   {
     id: 'sleep',
@@ -40,6 +42,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-moon',
     color: '#673AB7',
     tags: ['助眠', '睡前', '白噪音', 'Sleep'],
+    playlistId: '2246473066', // 助眠歌单
   },
   {
     id: 'workout',
@@ -47,6 +50,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-dumbbell',
     color: '#F44336',
     tags: ['运动', '跑步', '健身', 'Workout'],
+    playlistId: '2341523302', // 运动歌单
   },
   {
     id: 'relax',
@@ -54,6 +58,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-coffee',
     color: '#FF9800',
     tags: ['放松', '治愈', '下午茶', 'Relax'],
+    playlistId: '7244643266', // 放松歌单
   },
   {
     id: 'party',
@@ -61,6 +66,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-glass-cheers',
     color: '#E91E63',
     tags: ['派对', '电音', '舞曲', 'Party'],
+    playlistId: '312377398', // 派对歌单
   },
   {
     id: 'coding',
@@ -68,6 +74,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-laptop-code',
     color: '#2196F3',
     tags: ['编程', 'Coding', '黑客', '电子'],
+    playlistId: '7463163', // 编程歌单
   },
   {
     id: 'emotional',
@@ -75,6 +82,7 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-heart-broken',
     color: '#9C27B0',
     tags: ['伤感', '治愈', '情感', 'Emo'],
+    playlistId: '2483435062', // 情感歌单
   },
   {
     id: 'driving',
@@ -82,80 +90,16 @@ const RADIO_CHANNELS: RadioChannel[] = [
     icon: 'fas fa-car',
     color: '#009688',
     tags: ['驾车', '兜风', '公路', 'Trip'],
+    playlistId: '2409964975', // 驾驶歌单
   },
 ];
 
-// 当前电台状态
-let currentChannel: RadioChannel | null = null;
-let radioPlaylist: Song[] = [];
-let isLoading = false;
-
-/**
- * 初始化电台模块
- */
-export function initRadio(): void {
-  renderChannelList();
-  bindEvents();
-  // console.log('📻 电台模块已加载');
-}
-
-/**
- * 渲染电台频道列表
- */
-function renderChannelList(): void {
-  const listContainer = document.getElementById('radioChannelList');
-  if (!listContainer) return;
-
-  listContainer.innerHTML = RADIO_CHANNELS.map(createChannelCard).join('');
-
-  // 绑定点击事件
-  listContainer.querySelectorAll('.radio-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const channelId = (card as HTMLElement).dataset.id;
-      const channel = RADIO_CHANNELS.find((c) => c.id === channelId);
-      if (channel) {
-        playChannel(channel);
-      }
-    });
-  });
-}
-
-/**
- * 创建电台卡片 HTML
- */
-function createChannelCard(channel: RadioChannel): string {
-  return `
-    <div class="radio-card" data-id="${channel.id}" style="--card-color: ${channel.color}">
-        <div class="radio-icon">
-            <i class="${channel.icon}"></i>
-        </div>
-        <div class="radio-info">
-            <h3>${channel.name}</h3>
-            <div class="radio-tags">
-                ${channel.tags.map((tag) => `<span>#${tag}</span>`).join('')}
-            </div>
-        </div>
-        <div class="radio-play-icon">
-            <i class="fas fa-play"></i>
-        </div>
-    </div>
-  `;
-}
-
-/**
- * 绑定事件
- */
-function bindEvents(): void {
-  const backBtn = document.getElementById('radioBackBtn');
-  if (backBtn) {
-    backBtn.addEventListener('click', showChannelList);
-  }
-}
+// ... (currentChannel, radioPlaylist, isLoading definitions) ...
 
 /**
  * 播放指定频道
  */
-async function playChannel(channel: RadioChannel): Promise<void> {
+async function playChannel(channel: RadioChannel & { playlistId?: string }): Promise<void> {
   if (isLoading) return;
   isLoading = true;
   currentChannel = channel;
@@ -174,47 +118,37 @@ async function playChannel(channel: RadioChannel): Promise<void> {
   ui.showLoading('radioSongList');
 
   try {
-    // 根据频道标签搜索歌曲
     let songs: Song[] = [];
-    
-    // P1优化: 改进关键词生成策略
-    let keywords: string[] = [];
-    
+
     if (channel.isFM) {
-      // 私人FM逻辑
-      keywords = ['私人推荐', '热歌', '流行', '华语'];
-    } else {
-      // 使用标签搜索，优先使用具体的风格标签
-      keywords = [...channel.tags];
-      // 添加通用后缀以增加匹配度
-      if (!keywords.some(k => k.includes('歌') || k.includes('曲'))) {
-        keywords.push(`${channel.name}歌单`);
+      // 私人FM模式：优先尝试搜索"推荐"，如果失败则使用热歌榜
+      try {
+        // 尝试搜索获取动态推荐
+        const searchSongs = await api.searchMusicAPI('私人推荐', 'netease', 30);
+        if (searchSongs && searchSongs.length > 0) {
+          songs = searchSongs;
+        } else {
+          throw new Error('搜索结果为空');
+        }
+      } catch (e) {
+        console.warn('FM搜索失败，降级使用歌单:', e);
+        // 降级：使用热歌榜
+        if (channel.playlistId) {
+          const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
+          songs = playlist.songs;
+        }
       }
-    }
-    
-    // 随机选择一个主要关键词进行搜索
-    const mainKeyword = keywords[Math.floor(Math.random() * keywords.length)];
-    console.log(`📻 [电台] 正在加载频道: ${channel.name}, 关键词: ${mainKeyword}`);
-    
-    // 第一次搜索
-    songs = await api.searchMusicAPI(mainKeyword, 'netease', 50);
-    
-    // 如果结果太少，尝试使用另一个不同的关键词补充
-    if (songs.length < 20 && keywords.length > 1) {
-      const fallbackKeywords = keywords.filter(k => k !== mainKeyword);
-      if (fallbackKeywords.length > 0) {
-        const secondKeyword = fallbackKeywords[Math.floor(Math.random() * fallbackKeywords.length)];
-        console.log(`📻 [电台] 结果不足，补充搜索: ${secondKeyword}`);
-        const moreSongs = await api.searchMusicAPI(secondKeyword, 'netease', 30);
-        
-        // 合并去重
-        const existingIds = new Set(songs.map(s => s.id));
-        moreSongs.forEach(s => {
-          if (!existingIds.has(s.id)) {
-            songs.push(s);
-            existingIds.add(s.id);
-          }
-        });
+    } else if (channel.playlistId) {
+      // 常规频道：直接解析对应的高质量歌单
+      try {
+        const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
+        songs = playlist.songs;
+      } catch (e) {
+        console.error(`解析电台歌单 ${channel.playlistId} 失败:`, e);
+        // 最后的降级：尝试用标签搜索
+        if (channel.tags.length > 0) {
+          songs = await api.searchMusicAPI(channel.tags[0], 'netease', 30);
+        }
       }
     }
 

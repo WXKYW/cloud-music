@@ -40,27 +40,18 @@ function escapeHtml(text: string): string {
 
 // ========== 排行榜配置 ==========
 const RANK_LISTS = [
-  { id: '3778678', name: '飙升榜', icon: '📈', desc: '热度飙升的歌曲' },
-  { id: '3779629', name: '新歌榜', icon: '🆕', desc: '最新发布的歌曲' },
-  { id: '2884035', name: '原创榜', icon: '✨', desc: '原创音乐作品' },
-  { id: '19723756', name: '热歌榜', icon: '🔥', desc: '当下最热门的歌曲' },
+  { id: '3778678', name: '热歌榜', icon: '🔥', color: '#ff6b6b', desc: '全站最热单曲' },
+  { id: '3779629', name: '新歌榜', icon: '🆕', color: '#4caf50', desc: '每日新歌推荐' },
+  { id: '19723756', name: '飙升榜', icon: '📈', color: '#2196f3', desc: '热度增长最快' },
+  { id: '2884035', name: '原创榜', icon: '✨', color: '#9c27b0', desc: '优秀原创作品' },
+  { id: '10520166', name: '电音榜', icon: '⚡', color: '#e91e63', desc: '全球电音精选' },
+  { id: '180106', name: 'UK榜', icon: '🇬🇧', color: '#3f51b5', desc: '英国单曲排行' },
+  { id: '60198', name: '美国榜', icon: '🇺🇸', color: '#f44336', desc: 'Billboard单曲' },
+  { id: '71385702', name: 'ACG榜', icon: '🎮', color: '#ff9800', desc: '二次元音乐' },
+  { id: '71384707', name: '古典榜', icon: '🎻', color: '#795548', desc: '经典古典音乐' },
 ];
 
-// ========== 模块状态 ==========
-interface PlaylistState {
-  stage: 'nav' | 'rank' | 'detail';
-  playlistId?: string;
-  playlistName?: string;
-}
-
-const currentState: PlaylistState = {
-  stage: 'nav',
-};
-
-// ========== 初始化函数 ==========
-export function initPlaylist(): void {
-  renderRankNav();
-}
+// ... existing code ...
 
 // ========== 渲染排行榜导航 ==========
 function renderRankNav(): void {
@@ -76,17 +67,17 @@ function renderRankNav(): void {
         <h3><i class="fas fa-trophy"></i> 排行榜</h3>
         <p class="result-count">选择一个排行榜查看详情</p>
       </div>
-      <div class="nav-buttons-container">
+      <div class="rank-grid">
         ${RANK_LISTS.map(
           (rank) => `
-          <button class="nav-btn-item" data-rank-id="${rank.id}">
-            <span class="btn-icon">${rank.icon}</span>
-            <span class="btn-content">
-              <span class="btn-title">${escapeHtml(rank.name)}</span>
-              <span class="btn-subtitle">${escapeHtml(rank.desc)}</span>
-            </span>
-            <i class="fas fa-chevron-right btn-arrow"></i>
-          </button>
+          <div class="rank-card" data-rank-id="${rank.id}" style="--card-color: ${rank.color}">
+            <div class="rank-icon">${rank.icon}</div>
+            <div class="rank-info">
+              <div class="rank-title">${escapeHtml(rank.name)}</div>
+              <div class="rank-desc">${escapeHtml(rank.desc)}</div>
+            </div>
+            <div class="rank-arrow"><i class="fas fa-play-circle"></i></div>
+          </div>
         `
         ).join('')}
       </div>
@@ -95,11 +86,11 @@ function renderRankNav(): void {
 
   container.innerHTML = navHtml;
 
-  const rankBtns = container.querySelectorAll('.nav-btn-item');
-  rankBtns.forEach((btn) => {
-    registerEventListener(btn, 'click', () => {
-      const rankId = (btn as HTMLElement).dataset.rankId;
-      const rankName = (btn as HTMLElement).querySelector('.btn-title')?.textContent || '';
+  const rankCards = container.querySelectorAll('.rank-card');
+  rankCards.forEach((card) => {
+    registerEventListener(card, 'click', () => {
+      const rankId = (card as HTMLElement).dataset.rankId;
+      const rankName = (card as HTMLElement).querySelector('.rank-title')?.textContent || '';
       if (rankId) {
         loadPlaylistDetail(rankId, rankName);
       }

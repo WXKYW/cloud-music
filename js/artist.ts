@@ -36,47 +36,47 @@ function renderFilters(): void {
   if (!container) return;
 
   const areas = [
-    { id: -1, name: '全部' },
-    { id: 7, name: '华语' },
-    { id: 96, name: '欧美' },
-    { id: 8, name: '日本' },
-    { id: 16, name: '韩国' },
-    { id: 0, name: '其他' },
+    { id: -1, name: '全部', icon: '🌐' },
+    { id: 7, name: '华语', icon: '🇨🇳' },
+    { id: 96, name: '欧美', icon: '🇺🇸' },
+    { id: 8, name: '日本', icon: '🇯🇵' },
+    { id: 16, name: '韩国', icon: '🇰🇷' },
+    { id: 0, name: '其他', icon: '🌍' },
   ];
 
   const types = [
-    { id: -1, name: '全部' },
-    { id: 1, name: '男歌手' },
-    { id: 2, name: '女歌手' },
-    { id: 3, name: '乐队/组合' },
+    { id: -1, name: '全部', icon: '👥' },
+    { id: 1, name: '男歌手', icon: '👨' },
+    { id: 2, name: '女歌手', icon: '👩' },
+    { id: 3, name: '乐队/组合', icon: '🎸' },
   ];
 
   const initials = [
-    { id: '-1', name: '热门' },
+    { id: '-1', name: '热门', icon: '🔥' },
     ...Array.from({ length: 26 }, (_, i) => {
       const char = String.fromCharCode(65 + i).toLowerCase();
-      return { id: char, name: char.toUpperCase() };
+      return { id: char, name: char.toUpperCase(), icon: '' };
     }),
-    { id: '0', name: '#' },
+    { id: '0', name: '#', icon: '' },
   ];
 
   container.innerHTML = `
     <div class="filter-row">
       <span class="filter-label">语种：</span>
       <div class="filter-options" id="areaOptions">
-        ${areas.map((a) => `<span class="filter-tag ${state.currentArea === a.id ? 'active' : ''}" data-type="area" data-val="${a.id}">${a.name}</span>`).join('')}
+        ${areas.map((a) => `<span class="filter-tag ${state.currentArea === a.id ? 'active' : ''}" data-type="area" data-val="${a.id}">${a.icon} ${a.name}</span>`).join('')}
       </div>
     </div>
     <div class="filter-row">
       <span class="filter-label">分类：</span>
       <div class="filter-options" id="typeOptions">
-        ${types.map((t) => `<span class="filter-tag ${state.currentType === t.id ? 'active' : ''}" data-type="type" data-val="${t.id}">${t.name}</span>`).join('')}
+        ${types.map((t) => `<span class="filter-tag ${state.currentType === t.id ? 'active' : ''}" data-type="type" data-val="${t.id}">${t.icon} ${t.name}</span>`).join('')}
       </div>
     </div>
     <div class="filter-row">
       <span class="filter-label">筛选：</span>
       <div class="filter-options" id="initialOptions">
-        ${initials.map((i) => `<span class="filter-tag ${state.currentInitial === i.id ? 'active' : ''}" data-type="initial" data-val="${i.id}">${i.name}</span>`).join('')}
+        ${initials.map((i) => `<span class="filter-tag ${state.currentInitial === i.id ? 'active' : ''}" data-type="initial" data-val="${i.id}">${i.icon ? i.icon + ' ' : ''}${i.name}</span>`).join('')}
       </div>
     </div>
   `;
