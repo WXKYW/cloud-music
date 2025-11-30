@@ -216,12 +216,10 @@ async function loadPlaylistDetail(playlistId: string, playlistName?: string): Pr
     showNotification('加载歌单详情失败', 'error');
   }
 }
-// ========== 初始化函数 ========== 
-const initPlaylist = (): void => {
+// ========== 初始化函数 ==========
+function initPlaylist(): void {
   renderRankNav();
-};
-
-// ... existing code ...
+}
 
 export { initPlaylist, cleanup }; // Explicit named export
 export default { initPlaylist, cleanup }; // Default export with reference
