@@ -710,10 +710,17 @@ async function loadArtistModule(): Promise<void> {
 
   try {
     console.log('📦 加载歌手模块...');
-    artistModule = await import('./artist.js');
-    artistModule.initArtist();
-    moduleLoadStatus.artist = true;
-    console.log('✅ 歌手模块加载完成');
+    // 显式解构导入
+    const module = await import('./artist.js');
+    artistModule = module;
+    
+    if (typeof module.initArtist === 'function') {
+      module.initArtist();
+      moduleLoadStatus.artist = true;
+      console.log('✅ 歌手模块加载完成');
+    } else {
+      console.error('❌ 歌手模块未导出 initArtist 方法', module);
+    }
   } catch (error) {
     console.error('❌ 歌手模块加载失败:', error);
     moduleLoadStatus.artist = false;
@@ -727,10 +734,17 @@ async function loadPlaylistModule(): Promise<void> {
 
   try {
     console.log('📦 加载歌单模块（含排行榜）...');
-    playlistModule = await import('./playlist.js');
-    playlistModule.initPlaylist();
-    moduleLoadStatus.playlist = true;
-    console.log('✅ 歌单模块加载完成');
+    // 显式解构导入，避免模块对象解析问题
+    const module = await import('./playlist.js');
+    playlistModule = module;
+    
+    if (typeof module.initPlaylist === 'function') {
+      module.initPlaylist();
+      moduleLoadStatus.playlist = true;
+      console.log('✅ 歌单模块加载完成');
+    } else {
+      console.error('❌ 歌单模块未导出 initPlaylist 方法', module);
+    }
   } catch (error) {
     console.error('❌ 歌单模块加载失败:', error);
     moduleLoadStatus.playlist = false;
@@ -744,10 +758,17 @@ async function loadRadioModule(): Promise<void> {
 
   try {
     console.log('📦 加载电台模块...');
-    radioModule = await import('./radio.js');
-    radioModule.initRadio();
-    moduleLoadStatus.radio = true;
-    console.log('✅ 电台模块加载完成');
+    // 显式解构导入
+    const module = await import('./radio.js');
+    radioModule = module;
+    
+    if (typeof module.initRadio === 'function') {
+      module.initRadio();
+      moduleLoadStatus.radio = true;
+      console.log('✅ 电台模块加载完成');
+    } else {
+      console.error('❌ 电台模块未导出 initRadio 方法', module);
+    }
   } catch (error) {
     console.error('❌ 电台模块加载失败:', error);
     moduleLoadStatus.radio = false;
@@ -761,10 +782,16 @@ async function loadDailyRecommendModule(): Promise<void> {
 
   try {
     console.log('📦 加载每日推荐模块...');
-    dailyRecommendModule = await import('./daily-recommend.js');
-    dailyRecommendModule.initDailyRecommend();
-    moduleLoadStatus.dailyRecommend = true;
-    console.log('✅ 每日推荐模块加载完成');
+    const module = await import('./daily-recommend.js');
+    dailyRecommendModule = module;
+    
+    if (typeof module.initDailyRecommend === 'function') {
+      module.initDailyRecommend();
+      moduleLoadStatus.dailyRecommend = true;
+      console.log('✅ 每日推荐模块加载完成');
+    } else {
+      console.error('❌ 每日推荐模块未导出 initDailyRecommend 方法', module);
+    }
   } catch (error) {
     console.error('❌ 每日推荐模块加载失败:', error);
     moduleLoadStatus.dailyRecommend = false;
