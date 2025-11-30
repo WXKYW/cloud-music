@@ -107,6 +107,10 @@ const API_SOURCES: ApiSource[] = [
     url: 'https://api.wuenci.com/meting/api/',
   },
   {
+    name: 'Injahow API (Meting)', // 新增备用Metimg源
+    url: 'https://api.injahow.cn/meting/',
+  },
+  {
     name: 'GDStudio 主API',
     url: 'https://music-api.gdstudio.xyz/api.php',
   },
@@ -128,6 +132,10 @@ const PLAYBACK_API_SOURCES: ApiSource[] = [
   {
     name: 'I-Meto API (Meting)',
     url: 'https://api.i-meto.com/meting/api',
+  },
+  {
+    name: 'Injahow API (Meting)', // 新增备用Metimg源
+    url: 'https://api.injahow.cn/meting/',
   },
   {
     name: 'GDStudio 主API',
