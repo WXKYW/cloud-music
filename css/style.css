@@ -5276,6 +5276,228 @@ body {
   min-height: 200px;
 }
 
+/* ========== 歌单分类样式 - 与歌手卡片一致 ========== */
+
+/* 歌单主容器 */
+.playlist-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* 歌单区块 */
+.playlist-section {
+  background: var(--bg-glass-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-light);
+}
+
+/* 区块头部 */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.section-header h3 i {
+  color: var(--primary-color);
+}
+
+/* 更多按钮 */
+.more-btn {
+  background: var(--bg-glass-medium);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.more-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* 分类标签区 - 与歌手卡片一致的横向布局 */
+.category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.category-tag {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-glass-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.category-tag:hover {
+  background: var(--bg-glass-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-primary);
+}
+
+.category-tag.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* 排行榜网格 - 与歌手网格一致 */
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* 排行榜卡片 - 与歌手卡片一致 */
+.rank-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-glass-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.rank-card:hover {
+  background: var(--bg-glass-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-primary);
+}
+
+.rank-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-color, var(--primary-color));
+  font-size: 28px;
+  transition: transform var(--transition-normal);
+}
+
+.rank-card:hover .rank-icon {
+  transform: scale(1.05);
+}
+
+.rank-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.rank-title {
+  color: var(--text-color);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-desc {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.rank-arrow {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-size: 20px;
+  transition: all var(--transition-normal);
+}
+
+.rank-card:hover .rank-arrow {
+  color: var(--primary-color);
+  transform: translateX(3px);
+}
+
+/* 歌单网格 */
+.playlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.playlist-grid.large {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .category-tags {
+    gap: var(--spacing-xs);
+  }
+
+  .category-tag {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 12px;
+  }
+
+  .rank-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .rank-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+
+  .rank-title {
+    font-size: 14px;
+  }
+
+  .playlist-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .playlist-grid.large {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ========== 移动端横屏适配 ========== */
 @media (max-width: 768px) and (orientation: landscape) {
   /* 横屏模式下禁止页面横向滚动 */
