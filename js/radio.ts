@@ -145,8 +145,23 @@ async function playChannel(channel: RadioChannel & { playlistId?: string }): Pro
         songs = playlist.songs;
       } catch (e) {
         console.error(`解析电台歌单 ${channel.playlistId} 失败:`, e);
+        
+        // 尝试切换 API 源重试
+        if (e instanceof Error && e.name !== 'AbortError') {
+           console.warn('尝试切换 API 源重试电台歌单...');
+           const switched = await api.switchToNextAPI();
+           if (switched) {
+             try {
+               const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
+               songs = playlist.songs;
+             } catch (retryError) {
+               console.error('重试解析电台歌单失败:', retryError);
+             }
+           }
+        }
+
         // 最后的降级：尝试用标签搜索
-        if (channel.tags.length > 0) {
+        if (songs.length === 0 && channel.tags.length > 0) {
           songs = await api.searchMusicAPI(channel.tags[0], 'netease', 30);
         }
       }

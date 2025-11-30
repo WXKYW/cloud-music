@@ -159,6 +159,45 @@ async function loadPlaylistDetail(playlistId: string, playlistName?: string): Pr
     );
   } catch (error) {
     console.error('加载歌单详情失败:', error);
+
+    // 尝试自动切换 API 源重试
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.warn('尝试切换 API 源重试加载歌单...');
+      const switched = await import('./api.js').then(m => m.switchToNextAPI());
+      if (switched) {
+        try {
+          const result = await parsePlaylistAPI(playlistId, 'netease');
+          const songs: Song[] = result?.songs || [];
+          
+          if (songs.length > 0) {
+            const headerHtml = `
+              <div class="nav-stage-header">
+                <button class="back-btn" id="backToRankNav">
+                  <i class="fas fa-arrow-left"></i> 返回
+                </button>
+                <h3><i class="fas fa-list-music"></i> ${escapeHtml(playlistName || result.name || '歌单')}</h3>
+                <p class="result-count">共 ${songs.length} 首歌曲</p>
+              </div>
+              <div id="playlistSongs"></div>
+            `;
+            
+            container.innerHTML = headerHtml;
+            
+            const backBtn = document.getElementById('backToRankNav');
+            if (backBtn) {
+              registerEventListener(backBtn, 'click', renderRankNav);
+            }
+            
+            displaySearchResults(songs, 'playlistSongs', songs);
+            showNotification(`成功加载《${playlistName || result.name}》`, 'success');
+            return;
+          }
+        } catch (retryError) {
+          console.error('重试加载歌单失败:', retryError);
+        }
+      }
+    }
+
     container.innerHTML = `
       <div class="nav-stage-header">
         <button class="back-btn" id="backToRankNav">
