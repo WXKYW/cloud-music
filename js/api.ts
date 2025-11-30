@@ -50,7 +50,6 @@ function detectApiFormat(apiUrl: string): {
   // 优化: 增强NCM格式识别，包含常用域名和关键词
   const isNCM =
     apiUrl.includes('ncm-api.imixc.top') ||
-    apiUrl.includes('music.cyrilstudio.top') || // Cyril Studio 源
     apiUrl.includes('netease') || // 通用关键词
     apiUrl.includes('163.com') ||
     (apiUrl.includes('vercel.app') && !apiUrl.includes('meting')); // Vercel部署通常是NCM，除非明确包含meting
@@ -95,14 +94,6 @@ const API_SOURCES: ApiSource[] = [
     url: 'https://music888.zeabur.app/',
   },
   {
-    name: 'I-Meto API (Meting)', // 官方Meting实例，稳定性高
-    url: 'https://api.i-meto.com/meting/api',
-  },
-  {
-    name: 'Cyril Studio API (NCM)', // 也就是网易云API，支持CORS
-    url: 'https://music.cyrilstudio.top/',
-  },
-  {
     name: 'Wuenci API (Meting)', // 备用Meting源
     url: 'https://api.wuenci.com/meting/api/',
   },
@@ -126,15 +117,7 @@ const PLAYBACK_API_SOURCES: ApiSource[] = [
     url: 'https://music888.zeabur.app/',
   },
   {
-    name: 'Cyril Studio API (NCM)', // NCM源通常解析链接速度更快
-    url: 'https://music.cyrilstudio.top/',
-  },
-  {
-    name: 'I-Meto API (Meting)',
-    url: 'https://api.i-meto.com/meting/api',
-  },
-  {
-    name: 'Injahow API (Meting)', // 新增备用Metimg源
+    name: 'Injahow API (Meting)', // 备用Meting源
     url: 'https://api.injahow.cn/meting/',
   },
   {
@@ -1529,7 +1512,8 @@ export async function searchMusicAPI(
           url = `${API_BASE}?types=search&source=${source}&name=${encodeURIComponent(keyword)}&count=${limit}`;
           break;
         case 'ncm':
-          url = `${API_BASE}search?keywords=${encodeURIComponent(keyword)}&limit=${limit}&type=${source}`;
+          // NCM API的type参数：1=单曲, 10=专辑, 100=歌手, 1000=歌单
+          url = `${API_BASE}search?keywords=${encodeURIComponent(keyword)}&limit=${limit}&type=1`;
           break;
         case 'clawcloud':
           url = `${API_BASE}cloudsearch?keywords=${encodeURIComponent(keyword)}&limit=${limit}&type=1`;
@@ -3402,4 +3386,525 @@ async function getArtistSongsBySearch(artistId: string): Promise<{
     },
     songs: [],
   };
+}
+
+// ========== 电台相关 API ==========
+
+// 获取电台分类列表
+export async function getDJCategories(): Promise<Array<{
+  id: number;
+  name: string;
+  pic56x56Url?: string;
+  pic84x84Url?: string;
+}>> {
+  const cacheKey = 'dj_categories';
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      console.warn('当前API不支持电台分类');
+      return getBuiltInDJCategories();
+    }
+
+    const url = `${API_BASE}dj/catelist`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.categories && Array.isArray(data.categories)) {
+      const categories = data.categories.map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        pic56x56Url: cat.pic56x56Url,
+        pic84x84Url: cat.pic84x84Url,
+      }));
+      cache.set(cacheKey, categories, CacheCategory.HOT_PLAYLISTS);
+      return categories;
+    }
+    return getBuiltInDJCategories();
+  } catch (error) {
+    console.error('获取电台分类失败:', error);
+    return getBuiltInDJCategories();
+  }
+}
+
+// 获取电台分类推荐
+export async function getDJRecommendByType(type: number, limit: number = 30): Promise<Array<{
+  id: number;
+  name: string;
+  picUrl: string;
+  rcmdText?: string;
+  programCount?: number;
+  subCount?: number;
+}>> {
+  const cacheKey = `dj_recommend_${type}_${limit}`;
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return [];
+    }
+
+    const url = `${API_BASE}dj/recommend/type?type=${type}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.djRadios && Array.isArray(data.djRadios)) {
+      const radios = data.djRadios.slice(0, limit).map((radio: any) => ({
+        id: radio.id,
+        name: radio.name,
+        picUrl: radio.picUrl,
+        rcmdText: radio.rcmdText,
+        programCount: radio.programCount,
+        subCount: radio.subCount,
+      }));
+      cache.set(cacheKey, radios, CacheCategory.HOT_PLAYLISTS);
+      return radios;
+    }
+    return [];
+  } catch (error) {
+    console.error('获取电台分类推荐失败:', error);
+    return [];
+  }
+}
+
+// 获取热门电台
+export async function getHotDJRadios(limit: number = 30, offset: number = 0): Promise<{
+  djRadios: Array<{
+    id: number;
+    name: string;
+    picUrl: string;
+    rcmdText?: string;
+    programCount?: number;
+    subCount?: number;
+  }>;
+  hasMore: boolean;
+}> {
+  const cacheKey = `hot_dj_radios_${limit}_${offset}`;
+  const cached = cache.get<any>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return { djRadios: [], hasMore: false };
+    }
+
+    const url = `${API_BASE}dj/hot?limit=${limit}&offset=${offset}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.djRadios && Array.isArray(data.djRadios)) {
+      const result = {
+        djRadios: data.djRadios.map((radio: any) => ({
+          id: radio.id,
+          name: radio.name,
+          picUrl: radio.picUrl,
+          rcmdText: radio.rcmdText,
+          programCount: radio.programCount,
+          subCount: radio.subCount,
+        })),
+        hasMore: data.hasMore || false,
+      };
+      cache.set(cacheKey, result, CacheCategory.HOT_PLAYLISTS);
+      return result;
+    }
+    return { djRadios: [], hasMore: false };
+  } catch (error) {
+    console.error('获取热门电台失败:', error);
+    return { djRadios: [], hasMore: false };
+  }
+}
+
+// 获取电台节目列表
+export async function getDJPrograms(radioId: number, limit: number = 30, offset: number = 0): Promise<{
+  programs: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    coverUrl?: string;
+    duration: number;
+    listenerCount?: number;
+    mainSong?: Song;
+  }>;
+  count: number;
+}> {
+  const cacheKey = `dj_programs_${radioId}_${limit}_${offset}`;
+  const cached = cache.get<any>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return { programs: [], count: 0 };
+    }
+
+    const url = `${API_BASE}dj/program?rid=${radioId}&limit=${limit}&offset=${offset}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.programs && Array.isArray(data.programs)) {
+      const result = {
+        programs: data.programs.map((prog: any) => {
+          let mainSong: Song | undefined;
+          if (prog.mainSong) {
+            mainSong = {
+              id: prog.mainSong.id?.toString() || prog.id?.toString(),
+              name: prog.mainSong.name || prog.name,
+              artist: extractArtistInfo(prog.mainSong) || ['电台节目'],
+              album: prog.radio?.name || '电台',
+              pic_id: prog.coverUrl || prog.radio?.picUrl,
+              lyric_id: prog.mainSong.id?.toString() || '',
+              source: 'netease',
+            };
+          }
+          return {
+            id: prog.id,
+            name: prog.name,
+            description: prog.description,
+            coverUrl: prog.coverUrl,
+            duration: prog.duration,
+            listenerCount: prog.listenerCount,
+            mainSong,
+          };
+        }),
+        count: data.count || 0,
+      };
+      cache.set(cacheKey, result, CacheCategory.HOT_PLAYLISTS);
+      return result;
+    }
+    return { programs: [], count: 0 };
+  } catch (error) {
+    console.error('获取电台节目失败:', error);
+    return { programs: [], count: 0 };
+  }
+}
+
+// ========== 歌单相关 API ==========
+
+// 获取歌单分类
+export async function getPlaylistCategories(): Promise<{
+  all: { name: string; resourceCount: number };
+  sub: Array<{ name: string; category: number; hot: boolean }>;
+  categories: Record<string, string>;
+}> {
+  const cacheKey = 'playlist_categories';
+  const cached = cache.get<any>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return getBuiltInPlaylistCategories();
+    }
+
+    const url = `${API_BASE}playlist/catlist`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.sub && Array.isArray(data.sub)) {
+      const result = {
+        all: data.all || { name: '全部', resourceCount: 0 },
+        sub: data.sub.map((cat: any) => ({
+          name: cat.name,
+          category: cat.category,
+          hot: cat.hot || false,
+        })),
+        categories: data.categories || {},
+      };
+      cache.set(cacheKey, result, CacheCategory.HOT_PLAYLISTS);
+      return result;
+    }
+    return getBuiltInPlaylistCategories();
+  } catch (error) {
+    console.error('获取歌单分类失败:', error);
+    return getBuiltInPlaylistCategories();
+  }
+}
+
+// 获取热门歌单分类标签
+export async function getHotPlaylistTags(): Promise<Array<{
+  id: number;
+  name: string;
+  category: number;
+  hot: boolean;
+}>> {
+  const cacheKey = 'hot_playlist_tags';
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return [];
+    }
+
+    const url = `${API_BASE}playlist/hot`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.tags && Array.isArray(data.tags)) {
+      const tags = data.tags.map((tag: any) => ({
+        id: tag.id,
+        name: tag.name,
+        category: tag.category,
+        hot: tag.hot || false,
+      }));
+      cache.set(cacheKey, tags, CacheCategory.HOT_PLAYLISTS);
+      return tags;
+    }
+    return [];
+  } catch (error) {
+    console.error('获取热门歌单标签失败:', error);
+    return [];
+  }
+}
+
+// 获取精品歌单
+export async function getHighQualityPlaylists(cat: string = '全部', limit: number = 20, before?: number): Promise<{
+  playlists: Array<{
+    id: string;
+    name: string;
+    coverImgUrl: string;
+    playCount: number;
+    description: string;
+    creator: { nickname: string };
+    tag?: string;
+  }>;
+  total: number;
+  more: boolean;
+  lasttime?: number;
+}> {
+  const cacheKey = `highquality_playlists_${cat}_${limit}_${before || 0}`;
+  const cached = cache.get<any>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return { playlists: [], total: 0, more: false };
+    }
+
+    let url = `${API_BASE}top/playlist/highquality?cat=${encodeURIComponent(cat)}&limit=${limit}`;
+    if (before) {
+      url += `&before=${before}`;
+    }
+
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.playlists && Array.isArray(data.playlists)) {
+      const result = {
+        playlists: data.playlists.map((p: any) => ({
+          id: p.id?.toString(),
+          name: p.name,
+          coverImgUrl: p.coverImgUrl,
+          playCount: p.playCount || 0,
+          description: p.description || '',
+          creator: { nickname: p.creator?.nickname || '未知' },
+          tag: p.tag,
+        })),
+        total: data.total || 0,
+        more: data.more || false,
+        lasttime: data.lasttime,
+      };
+      cache.set(cacheKey, result, CacheCategory.HOT_PLAYLISTS);
+      return result;
+    }
+    return { playlists: [], total: 0, more: false };
+  } catch (error) {
+    console.error('获取精品歌单失败:', error);
+    return { playlists: [], total: 0, more: false };
+  }
+}
+
+// 获取精品歌单标签
+export async function getHighQualityTags(): Promise<Array<{
+  id: number;
+  name: string;
+  hot: boolean;
+}>> {
+  const cacheKey = 'highquality_tags';
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return [];
+    }
+
+    const url = `${API_BASE}playlist/highquality/tags`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.tags && Array.isArray(data.tags)) {
+      const tags = data.tags.map((tag: any) => ({
+        id: tag.id,
+        name: tag.name,
+        hot: tag.hot || false,
+      }));
+      cache.set(cacheKey, tags, CacheCategory.HOT_PLAYLISTS);
+      return tags;
+    }
+    return [];
+  } catch (error) {
+    console.error('获取精品歌单标签失败:', error);
+    return [];
+  }
+}
+
+// 获取推荐歌单
+export async function getRecommendedPlaylists(limit: number = 30): Promise<Array<{
+  id: string;
+  name: string;
+  picUrl: string;
+  playCount: number;
+  copywriter?: string;
+}>> {
+  const cacheKey = `recommended_playlists_${limit}`;
+  const cached = cache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return [];
+    }
+
+    const url = `${API_BASE}personalized?limit=${limit}`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.result && Array.isArray(data.result)) {
+      const playlists = data.result.map((p: any) => ({
+        id: p.id?.toString(),
+        name: p.name,
+        picUrl: p.picUrl,
+        playCount: p.playCount || 0,
+        copywriter: p.copywriter,
+      }));
+      cache.set(cacheKey, playlists, CacheCategory.HOT_PLAYLISTS);
+      return playlists;
+    }
+    return [];
+  } catch (error) {
+    console.error('获取推荐歌单失败:', error);
+    return [];
+  }
+}
+
+// 获取所有榜单
+export async function getAllToplist(): Promise<{
+  code: number;
+  list: Array<{
+    id: string;
+    name: string;
+    coverImgUrl: string;
+    description?: string;
+    playCount: number;
+    updateFrequency?: string;
+    tracks?: Array<{ first: string; second: string }>;
+  }>;
+}> {
+  const cacheKey = 'all_toplist';
+  const cached = cache.get<any>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const apiFormat = detectApiFormat(API_BASE);
+    if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
+      return { code: 200, list: getBuiltInToplist() };
+    }
+
+    const url = `${API_BASE}toplist`;
+    const response = await fetchWithRetry(url);
+    const data = await response.json();
+
+    if (data && data.list && Array.isArray(data.list)) {
+      const result = {
+        code: data.code || 200,
+        list: data.list.map((item: any) => ({
+          id: item.id?.toString(),
+          name: item.name,
+          coverImgUrl: item.coverImgUrl,
+          description: item.description,
+          playCount: item.playCount || 0,
+          updateFrequency: item.updateFrequency,
+          tracks: item.tracks?.slice(0, 3),
+        })),
+      };
+      cache.set(cacheKey, result, CacheCategory.HOT_PLAYLISTS);
+      return result;
+    }
+    return { code: 200, list: getBuiltInToplist() };
+  } catch (error) {
+    console.error('获取所有榜单失败:', error);
+    return { code: 500, list: getBuiltInToplist() };
+  }
+}
+
+// ========== 内置降级数据 ==========
+
+// 内置电台分类
+function getBuiltInDJCategories(): Array<{ id: number; name: string }> {
+  return [
+    { id: 2001, name: '音乐故事' },
+    { id: 2, name: '脱口秀' },
+    { id: 3, name: '情感' },
+    { id: 10001, name: '书籍' },
+    { id: 453050, name: '声音恋人' },
+    { id: 11, name: '知识' },
+    { id: 4, name: '娱乐' },
+    { id: 453051, name: '广播剧' },
+  ];
+}
+
+// 内置歌单分类
+function getBuiltInPlaylistCategories(): {
+  all: { name: string; resourceCount: number };
+  sub: Array<{ name: string; category: number; hot: boolean }>;
+  categories: Record<string, string>;
+} {
+  return {
+    all: { name: '全部', resourceCount: 0 },
+    sub: [
+      { name: '华语', category: 0, hot: true },
+      { name: '欧美', category: 0, hot: true },
+      { name: '粤语', category: 0, hot: true },
+      { name: '流行', category: 1, hot: true },
+      { name: '摇滚', category: 1, hot: true },
+      { name: '电子', category: 1, hot: true },
+      { name: '说唱', category: 1, hot: true },
+      { name: '轻音乐', category: 1, hot: true },
+      { name: '运动', category: 2, hot: true },
+      { name: '学习', category: 2, hot: true },
+      { name: '工作', category: 2, hot: true },
+      { name: '睡前', category: 2, hot: true },
+      { name: 'ACG', category: 3, hot: true },
+      { name: '影视原声', category: 3, hot: true },
+    ],
+    categories: { '0': '语种', '1': '风格', '2': '场景', '3': '主题' },
+  };
+}
+
+// 内置榜单列表
+function getBuiltInToplist(): Array<{
+  id: string;
+  name: string;
+  coverImgUrl: string;
+  description?: string;
+  playCount: number;
+}> {
+  return [
+    { id: '3778678', name: '热歌榜', coverImgUrl: '', description: '全站最热歌曲', playCount: 500000000 },
+    { id: '3779629', name: '新歌榜', coverImgUrl: '', description: '每日新歌推荐', playCount: 300000000 },
+    { id: '19723756', name: '飙升榜', coverImgUrl: '', description: '热度增长最快', playCount: 200000000 },
+    { id: '2884035', name: '原创榜', coverImgUrl: '', description: '优秀原创作品', playCount: 100000000 },
+    { id: '10520166', name: '电音榜', coverImgUrl: '', description: '全球电音精选', playCount: 80000000 },
+    { id: '71385702', name: 'ACG榜', coverImgUrl: '', description: '二次元音乐', playCount: 150000000 },
+  ];
 }

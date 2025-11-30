@@ -1,4 +1,5 @@
 import { Song } from './api.js';
+// 老王修复BUG: 添加DOM初始化检查
 import * as player from './player.js';
 import { isSongInFavoritesSync } from './player.js';
 import { formatTime, formatArtist } from './utils.js';
@@ -342,13 +343,32 @@ export function displaySearchResults(
 }
 
 export function updatePlayButton(isPlaying: boolean): void {
+  // 防御性检查
+  if (!DOM || !DOM.playBtn) {
+    console.warn('⚠️ updatePlayButton: DOM.playBtn未初始化');
+    return;
+  }
   const icon = DOM.playBtn.querySelector('i')!;
   icon.className = isPlaying ? 'fas fa-pause' : 'fas fa-play';
 }
 
 export function updateCurrentSongInfo(song: Song, coverUrl: string): void {
-  DOM.currentTitle.textContent = song.name;
-  const albumText = song.album && song.album.trim() ? ` · ${song.album}` : '';
+  // 防御性检查：确保DOM已初始化
+  if (!DOM || !DOM.currentTitle || !DOM.currentArtist) {
+    console.error('❌ updateCurrentSongInfo: DOM元素未初始化');
+    return;
+  }
+
+  // 防御性检查：如果song无效，显示默认信息
+  if (!song || typeof song !== 'object') {
+    console.warn('⚠️ updateCurrentSongInfo: song对象无效');
+    DOM.currentTitle.textContent = '未知歌曲';
+    DOM.currentArtist.textContent = '未知艺术家';
+    return;
+  }
+
+  DOM.currentTitle.textContent = song.name || '未知歌曲';
+  const albumText = song.album && typeof song.album === 'string' && song.album.trim() ? ` · ${song.album}` : '';
   DOM.currentArtist.textContent = `${formatArtist(song.artist)}${albumText}`;
 
   // 优化: 使用图片懒加载

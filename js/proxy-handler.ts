@@ -36,9 +36,16 @@ export function shouldBypassProxy(url: string, quality: string): boolean {
 
 /**
  * 判断URL是否需要使用代理
+ * 老王修复BUG：当USE_PROXY为false时（纯前端项目），不使用代理
  */
 export function needsProxy(url: string, source?: string): boolean {
   if (!url) return false;
+
+  // 老王修复：纯前端项目禁用代理时，直接返回false
+  // 这样getProxiedUrl()只会做HTTP到HTTPS的升级，不会尝试访问不存在的代理端点
+  if (!API_CONFIG.USE_PROXY) {
+    return false;
+  }
 
   try {
     const urlObj = new URL(url);

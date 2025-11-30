@@ -4880,6 +4880,50 @@ body {
   transform: scale(1.05);
 }
 
+/* 歌手卡片 hover overlay效果 */
+.artist-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.3s ease;
+}
+
+.artist-overlay i {
+  color: white;
+  font-size: 24px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.artist-card:hover .artist-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 显示歌手名称在overlay中 */
+.artist-overlay::after {
+  content: attr(data-name);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 90%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  margin-top: 8px;
+}
+
 .artist-info {
   flex: 1;
   min-width: 0;
@@ -5088,6 +5132,54 @@ body {
   align-items: center;
   gap: var(--spacing-xs);
   backdrop-filter: blur(5px);
+}
+
+/* 歌单卡片 hover overlay效果 */
+.play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+}
+
+.play-overlay i {
+  color: white;
+  font-size: 42px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.playlist-card:hover .play-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.playlist-card:hover .play-overlay i {
+  transform: scale(1.1);
+}
+
+/* 显示歌单名称在overlay中 */
+.play-overlay::after {
+  content: attr(data-name);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 90%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .playlist-info {
@@ -5781,280 +5873,6 @@ body {
   }
 }
 
-/* ========== 新手引导样式 ========== */
-
-/* 遮罩层 */
-.onboarding-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10000;
-  pointer-events: none;
-}
-
-/* 背景遮罩 */
-.onboarding-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(3px);
-  pointer-events: auto;
-  animation: fadeIn 0.3s ease;
-}
-
-/* 高亮区域 */
-.onboarding-highlight {
-  position: absolute;
-  border: 3px solid var(--primary-color);
-  border-radius: var(--radius-md);
-  box-shadow:
-    0 0 0 4px rgba(255, 107, 107, 0.3),
-    0 0 0 9999px rgba(0, 0, 0, 0.7);
-  pointer-events: none;
-  transition: all 0.3s ease;
-  z-index: 10001;
-  animation: pulse 2s infinite;
-}
-
-/* 提示框 */
-.onboarding-tooltip {
-  position: fixed;
-  background: rgba(20, 20, 20, 0.98);
-  backdrop-filter: blur(30px);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-lg);
-  max-width: 450px;
-  width: 90%;
-  z-index: 10002;
-  pointer-events: auto;
-  animation: slideUp 0.3s ease;
-}
-
-/* 提示框头部 */
-.onboarding-tooltip-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 25px 15px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.onboarding-tooltip-title {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 700;
-  color: var(--text-color);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.onboarding-close-btn {
-  background: var(--bg-glass-medium);
-  border: 1px solid var(--border-light);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  color: var(--text-color);
-  cursor: pointer;
-  transition: all var(--transition-normal) ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.onboarding-close-btn:hover {
-  background: rgba(244, 67, 54, 0.3);
-  border-color: rgba(244, 67, 54, 0.5);
-  color: white;
-  transform: rotate(90deg);
-}
-
-/* 提示框内容 */
-.onboarding-tooltip-body {
-  padding: 20px 25px;
-}
-
-.onboarding-tooltip-body p {
-  margin: 0;
-  font-size: var(--font-base);
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-/* 提示框底部 */
-.onboarding-tooltip-footer {
-  padding: 15px 25px 20px;
-  border-top: 1px solid var(--border-light);
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* 进度指示器 */
-.onboarding-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.onboarding-step-indicator {
-  font-size: var(--font-sm);
-  color: var(--text-tertiary);
-  font-weight: 600;
-}
-
-.onboarding-progress-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--bg-glass-medium);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.onboarding-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-/* 按钮组 */
-.onboarding-buttons {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.onboarding-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-normal) ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.onboarding-btn-primary {
-  background: var(--primary-color);
-  color: white;
-}
-
-.onboarding-btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-primary);
-}
-
-.onboarding-btn-secondary {
-  background: var(--bg-glass-medium);
-  border: 1px solid var(--border-light);
-  color: var(--text-color);
-}
-
-.onboarding-btn-secondary:hover {
-  background: var(--bg-glass-heavy);
-  border-color: var(--border-primary);
-  transform: translateY(-1px);
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .onboarding-tooltip {
-    max-width: 95%;
-    bottom: 20px;
-    left: 50% !important;
-    top: auto !important;
-    transform: translateX(-50%) !important;
-  }
-
-  .onboarding-tooltip-header {
-    padding: 15px 20px 12px;
-  }
-
-  .onboarding-tooltip-title {
-    font-size: var(--font-lg);
-  }
-
-  .onboarding-tooltip-body {
-    padding: 15px 20px;
-  }
-
-  .onboarding-tooltip-body p {
-    font-size: var(--font-sm);
-  }
-
-  .onboarding-tooltip-footer {
-    padding: 12px 20px 15px;
-  }
-
-  .onboarding-buttons {
-    flex-wrap: wrap;
-  }
-
-  .onboarding-btn {
-    flex: 1;
-    min-width: 0;
-    justify-content: center;
-  }
-
-  .onboarding-highlight {
-    border-width: 2px;
-    box-shadow:
-      0 0 0 3px rgba(255, 107, 107, 0.3),
-      0 0 0 9999px rgba(0, 0, 0, 0.7);
-  }
-}
-
-/* 小屏手机优化 */
-@media (max-width: 480px) {
-  .onboarding-tooltip {
-    max-width: 100%;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    bottom: 0;
-  }
-
-  .onboarding-tooltip-header {
-    padding: 12px 15px;
-  }
-
-  .onboarding-tooltip-title {
-    font-size: var(--font-base);
-  }
-
-  .onboarding-close-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-  }
-
-  .onboarding-tooltip-body {
-    padding: 12px 15px;
-  }
-
-  .onboarding-tooltip-footer {
-    padding: 10px 15px 12px;
-  }
-
-  .onboarding-btn {
-    padding: 8px 16px;
-    font-size: var(--font-xs);
-  }
-}
-
 /* ========== 搜索按钮文字样式 ========== */
 /* 搜索按钮文字 - 桌面端显示 */
 .search-btn-text {
@@ -6373,6 +6191,57 @@ body {
 .radio-channel-card:hover .channel-play-icon {
   opacity: 1;
   transform: scale(1);
+}
+
+/* 电台卡片 hover overlay效果 */
+.radio-channel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.radio-channel-overlay i {
+  color: white;
+  font-size: 36px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.radio-channel-card:hover .radio-channel-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.radio-channel-card:hover .radio-channel-overlay i {
+  transform: scale(1.15);
+}
+
+/* 在overlay中显示频道名称 */
+.radio-channel-overlay::after {
+  content: attr(data-name);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  max-width: 90%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
 }
 
 .radio-player-container {

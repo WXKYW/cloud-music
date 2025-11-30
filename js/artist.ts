@@ -143,8 +143,11 @@ async function loadArtists(): Promise<void> {
 // 辅助函数：提取纯粹的艺术家姓名（去除括号及内容）
 function extractPureArtistName(name: string): string {
   // 匹配末尾的 (xxx) 或 （xxx）并移除
-  return name.replace(/\\s*[（(][^）)]*[）)]\\s*$/, '').trim();
+  return name.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
 }
+
+// 默认头像 SVG (Base64 编码)
+const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLCAjNjY3ZWVhIDAlLCAjNzY0YmEyIDEwMCUpIiByeD0iNTAiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjQpIi8+PHBhdGggZD0iTTI1IDc1UTI1IDU1IDUwIDU1VDc1IDc1IiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC40KSIgc3Ryb2tlLXdpZHRoPSI4IiBmaWxsPSJub25lIi8+PC9zdmc+';
 
 function renderArtistList(artists: any[]): void {
   const grid = document.getElementById('artistGrid');
@@ -159,7 +162,15 @@ function renderArtistList(artists: any[]): void {
     .map(
       (artist) => `
     <div class="artist-card" data-id="${artist.id}" data-name="${artist.name}">
+      <div class="artist-avatar">
+        <img src="${artist.picUrl || artist.img1v1Url || DEFAULT_AVATAR}?param=150y150"
+             loading="lazy"
+             alt="${extractPureArtistName(artist.name)}"
+             onerror="this.src='${DEFAULT_AVATAR}'">
+        <div class="artist-overlay" data-name="${extractPureArtistName(artist.name)}"><i class="fas fa-play"></i></div>
+      </div>
       <div class="artist-name">${extractPureArtistName(artist.name)}</div>
+      ${artist.musicSize ? `<div class="artist-count">${artist.musicSize}首歌曲</div>` : ''}
     </div>
   `
     )

@@ -11,8 +11,7 @@ import performanceMonitor from './performance-monitor.js';
 import { validateSearchKeyword, validatePlaylistId } from './input-validator.js';
 import { logger } from './logger.js';
 import { errorMonitor } from './error-monitor.js';
-import './onboarding.js';
-import { initAuth } from './auth.js'; // 新增：认证模块
+import { initAuth } from './auth.js'; // 认证模块
 
 // 优化: 使用动态导入实现代码分割，减少初始加载时间
 let artistModule: any = null; // 老王改：原discover模块改为artist
@@ -404,9 +403,6 @@ async function initializeApp(): Promise<void> {
   // 优化: 初始化主题管理器
   themeManager = new ThemeManager();
   // console.log('✅ 主题系统初始化成功');
-
-  // 初始化新手引导（已在onboarding.ts中自动初始化）
-  // console.log('✅ 新手引导系统已加载');
 
   // 优化: 初始化存储适配器（IndexedDB）
   try {

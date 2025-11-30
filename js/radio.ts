@@ -1,6 +1,6 @@
 /**
- * 电台模块 (Radio Module)
- * 处理电台频道的展示、选择和播放
+ * 电台模块 (Radio Module) - 优化版
+ * 支持真正的私人FM和电台分类浏览
  */
 
 import * as api from './api.js';
@@ -8,103 +8,116 @@ import * as ui from './ui.js';
 import * as player from './player.js';
 import { Song } from './api.js';
 
+// 电台频道类型
 interface RadioChannel {
   id: string;
   name: string;
   icon: string;
   color: string;
   tags: string[];
-  isFM?: boolean;
+  type: 'fm' | 'playlist' | 'dj'; // fm=私人FM, playlist=歌单模式, dj=真实电台
+  playlistId?: string; // 歌单模式用
+  djCategoryId?: number; // 电台分类用
 }
 
-// 电台频道定义 - 使用精选歌单ID
-const RADIO_CHANNELS: (RadioChannel & { playlistId?: string })[] = [
+// 模块状态
+let currentChannel: RadioChannel | null = null;
+let radioPlaylist: Song[] = [];
+let isLoading = false;
+let currentView: 'channels' | 'player' | 'djList' = 'channels';
+
+// 预设频道配置
+const RADIO_CHANNELS: RadioChannel[] = [
   {
     id: 'personal_fm',
     name: '私人FM',
     icon: 'fas fa-radio',
     color: '#E91E63',
-    tags: [],
-    isFM: true,
-    playlistId: '3778678', // 热歌榜作为备用FM源
+    tags: ['个性推荐', '无限惊喜'],
+    type: 'fm',
   },
   {
     id: 'study',
     name: '专注学习',
     icon: 'fas fa-book-reader',
     color: '#4CAF50',
-    tags: ['学习', '专注', '轻音乐', 'Study'],
-    playlistId: '26467411', // 学习歌单
+    tags: ['学习', '专注', '轻音乐'],
+    type: 'playlist',
+    playlistId: '26467411',
   },
   {
     id: 'sleep',
     name: '助眠时光',
     icon: 'fas fa-moon',
     color: '#673AB7',
-    tags: ['助眠', '睡前', '白噪音', 'Sleep'],
-    playlistId: '2246473066', // 助眠歌单
+    tags: ['助眠', '睡前', '白噪音'],
+    type: 'playlist',
+    playlistId: '2246473066',
   },
   {
     id: 'workout',
     name: '运动能量',
     icon: 'fas fa-dumbbell',
     color: '#F44336',
-    tags: ['运动', '跑步', '健身', 'Workout'],
-    playlistId: '2341523302', // 运动歌单
+    tags: ['运动', '跑步', '健身'],
+    type: 'playlist',
+    playlistId: '2341523302',
   },
   {
     id: 'relax',
     name: '放松心情',
     icon: 'fas fa-coffee',
     color: '#FF9800',
-    tags: ['放松', '治愈', '下午茶', 'Relax'],
-    playlistId: '7244643266', // 放松歌单
+    tags: ['放松', '治愈', '下午茶'],
+    type: 'playlist',
+    playlistId: '7244643266',
   },
   {
     id: 'party',
     name: '派对狂欢',
     icon: 'fas fa-glass-cheers',
     color: '#E91E63',
-    tags: ['派对', '电音', '舞曲', 'Party'],
-    playlistId: '312377398', // 派对歌单
+    tags: ['派对', '电音', '舞曲'],
+    type: 'playlist',
+    playlistId: '312377398',
   },
   {
     id: 'coding',
     name: '代码之魂',
     icon: 'fas fa-laptop-code',
     color: '#2196F3',
-    tags: ['编程', 'Coding', '黑客', '电子'],
-    playlistId: '7463163', // 编程歌单
+    tags: ['编程', 'Coding', '电子'],
+    type: 'playlist',
+    playlistId: '7463163',
   },
   {
     id: 'emotional',
     name: '情感治愈',
     icon: 'fas fa-heart-broken',
     color: '#9C27B0',
-    tags: ['伤感', '治愈', '情感', 'Emo'],
-    playlistId: '2483435062', // 情感歌单
+    tags: ['伤感', '治愈', '情感'],
+    type: 'playlist',
+    playlistId: '2483435062',
   },
   {
     id: 'driving',
     name: '驾驶时刻',
     icon: 'fas fa-car',
     color: '#009688',
-    tags: ['驾车', '兜风', '公路', 'Trip'],
-    playlistId: '2409964975', // 驾驶歌单
+    tags: ['驾车', '兜风', '公路'],
+    type: 'playlist',
+    playlistId: '2409964975',
   },
 ];
-
-// ... (currentChannel, radioPlaylist, isLoading definitions) ...
 
 /**
  * 播放指定频道
  */
-async function playChannel(channel: RadioChannel & { playlistId?: string }): Promise<void> {
+async function playChannel(channel: RadioChannel): Promise<void> {
   if (isLoading) return;
   isLoading = true;
   currentChannel = channel;
 
-  // 切换界面
   const listContainer = document.getElementById('radioChannelList');
   const playerContainer = document.getElementById('radioPlayerContainer');
   const titleEl = document.getElementById('radioCurrentChannel');
@@ -113,55 +126,34 @@ async function playChannel(channel: RadioChannel & { playlistId?: string }): Pro
   if (listContainer) listContainer.style.display = 'none';
   if (playerContainer) playerContainer.style.display = 'flex';
   if (titleEl) titleEl.textContent = channel.name;
-  if (statusEl) statusEl.textContent = '正在加载电台音乐...';
+  if (statusEl) statusEl.textContent = '正在加载...';
+  currentView = 'player';
 
   ui.showLoading('radioSongList');
 
   try {
     let songs: Song[] = [];
 
-    if (channel.isFM) {
-      // 私人FM模式：优先尝试搜索"推荐"，如果失败则使用热歌榜
-      try {
-        // 尝试搜索获取动态推荐
-        const searchSongs = await api.searchMusicAPI('私人推荐', 'netease', 30);
-        if (searchSongs && searchSongs.length > 0) {
-          songs = searchSongs;
-        } else {
-          throw new Error('搜索结果为空');
-        }
-      } catch (e) {
-        console.warn('FM搜索失败，降级使用歌单:', e);
-        // 降级：使用热歌榜
-        if (channel.playlistId) {
-          const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
-          songs = playlist.songs;
-        }
+    if (channel.type === 'fm') {
+      // Use real Personal FM API
+      if (statusEl) statusEl.textContent = '正在获取私人FM推荐...';
+      songs = await api.getPersonalFM();
+
+      if (songs.length === 0) {
+        // Fallback: search for recommended songs
+        console.warn('私人FM API返回为空，使用搜索降级');
+        songs = await api.searchMusicAPI('推荐热门', 'netease', 30);
       }
-    } else if (channel.playlistId) {
-      // 常规频道：直接解析对应的高质量歌单
+    } else if (channel.type === 'playlist' && channel.playlistId) {
+      // Playlist mode
+      if (statusEl) statusEl.textContent = '正在解析歌单...';
       try {
         const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
         songs = playlist.songs;
       } catch (e) {
-        console.error(`解析电台歌单 ${channel.playlistId} 失败:`, e);
-        
-        // 尝试切换 API 源重试
-        if (e instanceof Error && e.name !== 'AbortError') {
-           console.warn('尝试切换 API 源重试电台歌单...');
-           const switched = await api.switchToNextAPI();
-           if (switched) {
-             try {
-               const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
-               songs = playlist.songs;
-             } catch (retryError) {
-               console.error('重试解析电台歌单失败:', retryError);
-             }
-           }
-        }
-
-        // 最后的降级：尝试用标签搜索
-        if (songs.length === 0 && channel.tags.length > 0) {
+        console.error(`解析歌单 ${channel.playlistId} 失败:`, e);
+        // Fallback: search by tags
+        if (channel.tags.length > 0) {
           songs = await api.searchMusicAPI(channel.tags[0], 'netease', 30);
         }
       }
@@ -169,13 +161,10 @@ async function playChannel(channel: RadioChannel & { playlistId?: string }): Pro
 
     if (songs.length > 0) {
       radioPlaylist = songs;
-      // 随机打乱
+      // Shuffle for variety
       radioPlaylist.sort(() => Math.random() - 0.5);
 
-      // 渲染列表
       ui.displaySearchResults(radioPlaylist, 'radioSongList', radioPlaylist);
-
-      // 自动播放第一首
       await player.playSong(0, radioPlaylist, 'radioSongList');
 
       if (statusEl) statusEl.textContent = `正在播放: ${channel.name}`;
@@ -193,7 +182,24 @@ async function playChannel(channel: RadioChannel & { playlistId?: string }): Pro
 }
 
 /**
- * 返回频道列表
+ * Load more FM songs (for continuous playback)
+ */
+async function loadMoreFMSongs(): Promise<void> {
+  if (currentChannel?.type !== 'fm' || isLoading) return;
+
+  try {
+    const moreSongs = await api.getPersonalFM();
+    if (moreSongs.length > 0) {
+      radioPlaylist.push(...moreSongs);
+      console.log(`🎵 已加载 ${moreSongs.length} 首新FM推荐`);
+    }
+  } catch (error) {
+    console.warn('加载更多FM失败:', error);
+  }
+}
+
+/**
+ * Return to channel list
  */
 function showChannelList(): void {
   const listContainer = document.getElementById('radioChannelList');
@@ -201,12 +207,80 @@ function showChannelList(): void {
 
   if (listContainer) listContainer.style.display = 'grid';
   if (playerContainer) playerContainer.style.display = 'none';
+  currentView = 'channels';
+}
+
+/**
+ * Render the channel list
+ */
+function renderChannelList(): void {
+  const container = document.getElementById('radioChannelList');
+  if (!container) {
+    console.error('❌ radioChannelList container not found');
+    return;
+  }
+
+  container.innerHTML = RADIO_CHANNELS.map(channel => `
+    <div class="radio-channel-card" data-channel-id="${channel.id}" data-name="${channel.name}" style="--channel-color: ${channel.color}">
+      <div class="radio-channel-icon" style="background: ${channel.color}">
+        <i class="${channel.icon}"></i>
+      </div>
+      <div class="radio-channel-info">
+        <h4 class="radio-channel-name">${channel.name}</h4>
+        <div class="radio-channel-tags">
+          ${channel.tags.slice(0, 3).map(tag => `<span class="radio-tag">${tag}</span>`).join('')}
+        </div>
+      </div>
+      ${channel.type === 'fm' ? '<span class="fm-badge">FM</span>' : ''}
+      <div class="radio-channel-overlay" data-name="${channel.name}"><i class="fas fa-play"></i></div>
+    </div>
+  `).join('');
+}
+
+/**
+ * Bind event listeners
+ */
+function bindEvents(): void {
+  const channelList = document.getElementById('radioChannelList');
+  if (channelList) {
+    channelList.addEventListener('click', (e: Event) => {
+      const target = e.target as HTMLElement;
+      const card = target.closest('.radio-channel-card') as HTMLElement;
+      if (card) {
+        const channelId = card.dataset.channelId;
+        const channel = RADIO_CHANNELS.find(ch => ch.id === channelId);
+        if (channel) {
+          playChannel(channel);
+        }
+      }
+    });
+  }
+
+  const backBtn = document.getElementById('radioBackBtn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      showChannelList();
+    });
+  }
+
+  // Listen for track end to load more FM songs
+  const audioPlayer = document.getElementById('audioPlayer') as HTMLAudioElement;
+  if (audioPlayer) {
+    audioPlayer.addEventListener('ended', () => {
+      if (currentChannel?.type === 'fm' && radioPlaylist.length < 5) {
+        loadMoreFMSongs();
+      }
+    });
+  }
 }
 
 function cleanup(): void {
-  // 清理逻辑
+  currentChannel = null;
+  radioPlaylist = [];
+  isLoading = false;
+  currentView = 'channels';
 }
-// ========== 初始化电台模块 ==========
+
 function initRadio(): void {
   renderChannelList();
   bindEvents();

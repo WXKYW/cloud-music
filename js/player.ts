@@ -304,6 +304,17 @@ export async function playSong(
   lastActiveContainer = containerId;
   const song = currentPlaylist[index];
 
+  // 防御性检查：确保歌曲对象有效
+  if (!song || typeof song !== 'object' || !song.id) {
+    console.error('❌ playSong: 无效的歌曲对象', { index, song });
+    ui.showNotification('歌曲数据异常，尝试下一首...', 'warning');
+    // 尝试播放下一首
+    if (index + 1 < playlist.length) {
+      setTimeout(() => playSong(index + 1, playlist, containerId, fromHistory), 500);
+    }
+    return;
+  }
+
   if (song.source === 'kuwo') {
     ui.showNotification('正在播放酷我音乐...', 'info');
   }
