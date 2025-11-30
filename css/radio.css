@@ -1,60 +1,55 @@
-/* 电台卡片样式 */
+/* 电台卡片样式 - 与歌手卡片保持一致 */
 .radio-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-  border-radius: 16px;
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 12px);
+  padding: var(--spacing-md, 12px);
+  background: var(--bg-glass-light, rgba(255, 255, 255, 0.05));
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.1));
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  overflow: hidden;
-  height: 160px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.radio-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card-color);
-  opacity: 0.1;
-  transition: opacity 0.3s ease;
-  z-index: 0;
+  backdrop-filter: blur(10px);
 }
 
 .radio-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--card-color);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-
-.radio-card:hover::before {
-  opacity: 0.2;
+  background: var(--bg-glass-medium, rgba(255, 255, 255, 0.1));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border-color: var(--border-primary, rgba(255, 107, 107, 0.5));
 }
 
 .radio-icon {
-  font-size: 32px;
-  color: var(--card-color);
-  margin-bottom: 10px;
-  position: relative;
-  z-index: 1;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--card-color, var(--primary-color, #ff6b6b));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 24px;
+  color: #fff;
+  transition: transform 0.3s ease;
+}
+
+.radio-card:hover .radio-icon {
+  transform: scale(1.05);
 }
 
 .radio-info {
-  position: relative;
-  z-index: 1;
+  flex: 1;
+  min-width: 0;
 }
 
 .radio-info h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 8px;
-  color: #fff;
+  margin-bottom: var(--spacing-xs, 4px);
+  color: var(--text-color, #fff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .radio-tags {
@@ -65,34 +60,25 @@
 
 .radio-tags span {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(0, 0, 0, 0.2);
-  padding: 2px 8px;
-  border-radius: 10px;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.5));
 }
 
 .radio-play-icon {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  background: var(--card-color);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  background: var(--primary-color, #ff6b6b);
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
   opacity: 0;
-  transform: scale(0.5);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  z-index: 2;
-}
-
-.radio-play-icon i {
-  color: #fff;
-  font-size: 16px;
-  margin-left: 2px;
+  transform: scale(0.8);
 }
 
 .radio-card:hover .radio-play-icon {
@@ -100,12 +86,18 @@
   transform: scale(1);
 }
 
-/* 电台频道列表网格 */
+.radio-play-icon:hover {
+  background: var(--primary-dark, #ff5252);
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+/* 电台频道列表网格 - 与歌手网格一致 */
 #radioChannelList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  padding: 20px 0;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md, 12px);
+  padding: var(--spacing-sm, 8px);
 }
 
 /* 电台播放器界面 */
@@ -165,29 +157,26 @@
 /* 移动端适配 */
 @media (max-width: 768px) {
   #radioChannelList {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .radio-card {
-    height: 140px;
-    padding: 15px;
+    padding: 12px;
   }
 
   .radio-icon {
-    font-size: 24px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
   }
 
   .radio-info h3 {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .radio-play-icon {
-    width: 32px;
-    height: 32px;
-    bottom: 15px;
-    right: 15px;
-    opacity: 1; /* 移动端默认显示播放按钮 */
+    opacity: 1;
     transform: scale(1);
   }
 }

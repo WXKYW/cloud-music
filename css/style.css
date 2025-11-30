@@ -5077,35 +5077,42 @@ body {
   border-color: var(--primary-color);
 }
 
-/* 歌单网格 */
+/* 歌单网格 - 与歌手卡片样式一致 */
 .hot-playlists-grid,
 .user-playlists-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-md);
+  padding: var(--spacing-sm);
 }
 
 .playlist-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
   background: var(--bg-glass-light);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  border: 1px solid var(--border-light);
   cursor: pointer;
   transition: all var(--transition-normal);
-  border: 1px solid var(--border-light);
   backdrop-filter: blur(10px);
 }
 
 .playlist-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  background: var(--bg-glass-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
   border-color: var(--border-primary);
 }
 
 .playlist-cover {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
   overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
 }
 
 .playlist-cover img {
@@ -5120,18 +5127,11 @@ body {
 }
 
 .playlist-play-count {
-  position: absolute;
-  top: var(--spacing-xs);
-  right: var(--spacing-xs);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
   font-size: 12px;
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  backdrop-filter: blur(5px);
 }
 
 /* 歌单卡片 hover overlay效果 */
@@ -5143,20 +5143,18 @@ body {
   height: 100%;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  border-radius: inherit;
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(0.9);
   transition: all 0.3s ease;
 }
 
 .play-overlay i {
   color: white;
-  font-size: 42px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  font-size: 24px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .playlist-card:hover .play-overlay {
@@ -5168,27 +5166,19 @@ body {
   transform: scale(1.1);
 }
 
-/* 显示歌单名称在overlay中 */
+/* 显示歌单名称在overlay中 - 隐藏 */
 .play-overlay::after {
-  content: attr(data-name);
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-  max-width: 90%;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  display: none;
 }
 
 .playlist-info {
-  padding: var(--spacing-md);
+  flex: 1;
+  min-width: 0;
 }
 
 .playlist-name {
   color: var(--text-color);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: var(--spacing-xs);
   overflow: hidden;
