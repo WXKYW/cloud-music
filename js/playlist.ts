@@ -177,3 +177,5 @@ async function loadPlaylistDetail(playlistId: string, playlistName?: string): Pr
     showNotification('加载歌单详情失败', 'error');
   }
 }
+// 默认导出，增强兼容性
+export default { initPlaylist, cleanup };

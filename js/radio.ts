@@ -191,3 +191,5 @@ function showChannelList(): void {
 export function cleanup(): void {
   // 清理逻辑
 }
+// 默认导出，增强兼容性
+export default { initRadio, cleanup };

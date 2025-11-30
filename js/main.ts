@@ -714,8 +714,11 @@ async function loadArtistModule(): Promise<void> {
     const module = await import('./artist.js');
     artistModule = module;
     
-    if (typeof module.initArtist === 'function') {
-      module.initArtist();
+    // 兼容命名导出和默认导出
+    const initFn = module.initArtist || (module.default && module.default.initArtist);
+    
+    if (typeof initFn === 'function') {
+      initFn();
       moduleLoadStatus.artist = true;
       console.log('✅ 歌手模块加载完成');
     } else {
@@ -738,8 +741,11 @@ async function loadPlaylistModule(): Promise<void> {
     const module = await import('./playlist.js');
     playlistModule = module;
     
-    if (typeof module.initPlaylist === 'function') {
-      module.initPlaylist();
+    // 兼容命名导出和默认导出
+    const initFn = module.initPlaylist || (module.default && module.default.initPlaylist);
+    
+    if (typeof initFn === 'function') {
+      initFn();
       moduleLoadStatus.playlist = true;
       console.log('✅ 歌单模块加载完成');
     } else {
@@ -762,8 +768,11 @@ async function loadRadioModule(): Promise<void> {
     const module = await import('./radio.js');
     radioModule = module;
     
-    if (typeof module.initRadio === 'function') {
-      module.initRadio();
+    // 兼容命名导出和默认导出
+    const initFn = module.initRadio || (module.default && module.default.initRadio);
+    
+    if (typeof initFn === 'function') {
+      initFn();
       moduleLoadStatus.radio = true;
       console.log('✅ 电台模块加载完成');
     } else {
