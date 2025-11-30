@@ -452,78 +452,130 @@ body {
   font-size: 18px;
 }
 
+/* 热门歌单网格 - 与歌手网格一致 */
 .hot-playlists-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
 }
 
+/* 热门歌单卡片 - 与歌手卡片一致 */
 .hot-playlist-card {
-  background: var(--bg-glass-medium);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 15px;
-  cursor: pointer;
-  transition: all var(--transition-normal) ease;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-glass-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
 }
 
-.hot-playlist-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.2), transparent);
-  transition: left var(--transition-slow) ease;
-}
-
 .hot-playlist-card:hover {
-  background: var(--bg-glass-heavy);
-  border-color: var(--primary-color);
+  background: var(--bg-glass-medium);
   transform: translateY(-2px);
-  box-shadow:
-    var(--shadow-md),
-    0 0 20px rgba(255, 107, 107, 0.2);
-}
-
-.hot-playlist-card:hover::before {
-  left: 100%;
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-primary);
 }
 
 .hot-playlist-icon {
-  font-size: 28px;
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 107, 107, 0.1);
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
+  font-size: 24px;
+  transition: transform var(--transition-normal);
+}
+
+.hot-playlist-card:hover .hot-playlist-icon {
+  transform: scale(1.05);
+}
+
+/* 热门歌单卡片 hover overlay效果 */
+.hot-playlist-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.3s ease;
+}
+
+.hot-playlist-overlay i {
+  color: white;
+  font-size: 24px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hot-playlist-card:hover .hot-playlist-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.hot-playlist-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .hot-playlist-name {
-  font-size: var(--font-md);
-  font-weight: 600;
   color: var(--text-color);
-  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hot-playlist-stats {
+  display: flex;
+  gap: var(--spacing-md);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.hot-playlist-action {
+  flex-shrink: 0;
 }
 
 .hot-playlist-arrow {
-  color: var(--text-tertiary);
-  font-size: var(--font-xs);
-  transition: all var(--transition-fast) ease;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--primary-color);
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
 }
 
-.hot-playlist-card:hover .hot-playlist-arrow {
-  color: var(--primary-color);
-  transform: translateX(3px);
+.hot-playlist-arrow:hover {
+  background: var(--primary-dark);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-primary);
 }
 
 /* 移动端热门歌单适配 - 已合并到主断点块(1384行) */
@@ -6094,93 +6146,56 @@ body {
 
 /* ========== ��̨ģ����ʽ ========== */
 
-.radio-channel-list {
+/* 电台频道列表网格 - 与歌手网格一致 */
+.radio-channel-list,
+#radioChannelList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 20px;
-  padding: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
 }
 
+/* 电台频道卡片 - 与歌手卡片一致 */
 .radio-channel-card {
-  background: var(--bg-glass-medium);
-  border-radius: 16px;
-  padding: 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 15px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-glass-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--border-light);
-  aspect-ratio: 1; /* �����ο�Ƭ */
-}
-
-.radio-channel-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, var(--channel-color), transparent);
-  opacity: 0.1;
-  transition: opacity 0.3s ease;
 }
 
 .radio-channel-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--channel-color);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  background: var(--bg-glass-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-primary);
 }
 
-.radio-channel-card:hover::before {
-  opacity: 0.3;
-}
-
-.channel-icon {
+.radio-channel-icon {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--channel-color, var(--primary-color));
   font-size: 24px;
-  color: var(--channel-color);
-  z-index: 1;
+  color: white;
+  transition: transform var(--transition-normal);
 }
 
-.channel-name {
-  font-size: 16px;
-  font-weight: 600;
-  z-index: 1;
-}
-
-.channel-play-icon {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--channel-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 12px;
-  opacity: 0;
-  transform: scale(0.5);
-  transition: all 0.3s ease;
-  z-index: 2;
-}
-
-.radio-channel-card:hover .channel-play-icon {
-  opacity: 1;
-  transform: scale(1);
+.radio-channel-card:hover .radio-channel-icon {
+  transform: scale(1.05);
 }
 
 /* 电台卡片 hover overlay效果 */
@@ -6190,24 +6205,21 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   border-radius: inherit;
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(0.9);
   transition: all 0.3s ease;
-  z-index: 10;
 }
 
 .radio-channel-overlay i {
   color: white;
-  font-size: 36px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  font-size: 24px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .radio-channel-card:hover .radio-channel-overlay {
@@ -6215,23 +6227,57 @@ body {
   transform: scale(1);
 }
 
-.radio-channel-card:hover .radio-channel-overlay i {
-  transform: scale(1.15);
-}
-
 /* 在overlay中显示频道名称 */
 .radio-channel-overlay::after {
   content: attr(data-name);
   color: white;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   max-width: 90%;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  margin-top: 8px;
+}
+
+.radio-channel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.radio-channel-name {
+  color: var(--text-color);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio-channel-tags {
+  display: flex;
+  gap: var(--spacing-sm);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.radio-tag {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.fm-badge {
+  background: var(--primary-color);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .radio-player-container {
@@ -6268,10 +6314,11 @@ body {
   /* �̳� search-results ��ʽ */
 }
 
-/* �ƶ������䲹�� */
+/* 移动端适配补充 */
 @media (max-width: 768px) {
+  /* 歌手网格移动端 - 单列布局 */
   .artist-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 
@@ -6280,7 +6327,7 @@ body {
   }
 
   .artist-name {
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .album-grid {
@@ -6288,19 +6335,48 @@ body {
     gap: 12px;
   }
 
-  .radio-channel-list {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+  /* 电台网格移动端 - 单列布局与歌手一致 */
+  .radio-channel-list,
+  #radioChannelList {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .radio-channel-card {
-    padding: 15px;
+    padding: var(--spacing-md);
   }
 
-  .channel-icon {
+  .radio-channel-icon {
     width: 50px;
     height: 50px;
     font-size: 20px;
+  }
+
+  .radio-channel-name {
+    font-size: 14px;
+  }
+
+  /* 歌单网格移动端 - 单列布局与歌手一致 */
+  .hot-playlists-grid,
+  .user-playlists-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .hot-playlist-card,
+  .playlist-card {
+    padding: var(--spacing-md);
+  }
+
+  .hot-playlist-icon,
+  .playlist-cover {
+    width: 50px;
+    height: 50px;
+  }
+
+  .hot-playlist-name,
+  .playlist-name {
+    font-size: 14px;
   }
 }
 
