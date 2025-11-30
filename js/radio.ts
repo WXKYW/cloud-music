@@ -209,7 +209,7 @@ function cleanup(): void {
 /**
  * 初始化电台模块
  */
-export function initRadio(): void {
+function initRadio(): void {
   renderChannelList();
   bindEvents();
   // console.log('📻 电台模块已加载');
