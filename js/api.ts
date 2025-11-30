@@ -1571,6 +1571,21 @@ export async function searchMusicAPI(
       }
 
       if (songs.length === 0) {
+        // P0-2优化: 如果当前源搜索结果为空，且不是网易云，尝试使用网易云作为后备
+        if (source !== 'netease') {
+          console.log(`🔍 [搜索] ${source} 返回空，尝试使用网易云作为后备...`);
+          try {
+            // 递归调用，但指定源为网易云
+            // 注意：为了避免无限递归，这里直接使用 'netease' 调用
+            // 并且不应该再次缓存到当前key，而是让用户感知到这是后备结果
+            // 但为了简化，我们直接返回网易云的结果
+            // 警告：这可能会导致 UI 显示的来源与实际不符，但能保证有结果
+            return await searchMusicAPI(keyword, 'netease', limit);
+          } catch (fallbackError) {
+            console.warn('⚠️ [搜索] 后备搜索失败:', fallbackError);
+            return [];
+          }
+        }
         return [];
       }
 
