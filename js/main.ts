@@ -575,28 +575,6 @@ async function initializeApp(): Promise<void> {
     .querySelector('.progress-bar')!
     .addEventListener('click', (e: Event) => player.seekTo(e as MouseEvent));
 
-  // 定时关闭：循环切换 0/15/30/60 分钟
-  const sleepTimerBtn = document.getElementById('sleepTimerBtn');
-  const sleepOptions = [0, 15, 30, 60];
-  let sleepOptionIndex = 0;
-  const updateSleepBtnLabel = () => {
-    const minutes = sleepOptions[sleepOptionIndex];
-    const title = minutes > 0 ? `定时停止：${minutes}分钟` : '定时停止：关闭';
-    if (sleepTimerBtn) {
-      sleepTimerBtn.setAttribute('title', title);
-      sleepTimerBtn.setAttribute('aria-label', title);
-    }
-  };
-  if (sleepTimerBtn) {
-    updateSleepBtnLabel();
-    sleepTimerBtn.addEventListener('click', () => {
-      sleepOptionIndex = (sleepOptionIndex + 1) % sleepOptions.length;
-      const minutes = sleepOptions[sleepOptionIndex];
-      player.setSleepTimer(minutes);
-      updateSleepBtnLabel();
-    });
-  }
-
   // 音质切换按钮
   const qualityToggleBtn = document.getElementById('qualityToggleBtn');
   if (qualityToggleBtn) {

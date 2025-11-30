@@ -518,11 +518,10 @@ function renderLyricsList(lyrics: LyricLine[]): void {
 }
 
 // 优化: 二分查找活动歌词
-// 修复：添加0.6秒的提前补偿，使歌词提前显示并与歌曲同步
+// 修复：添加0.5秒的提前补偿，使歌词提前显示并与歌曲同步
 function findActiveLyricIndex(lyrics: LyricLine[], currentTime: number): number {
-  // 提前600ms显示歌词（减去时间，而不是加上）
-  // 修复：防止负数时间导致索引错误
-  const adjustedTime = Math.max(0, currentTime - 0.6);
+  // 提前500ms显示歌词（加上时间，让歌词提前出现）
+  const adjustedTime = currentTime + 0.5;
 
   let left = 0;
   let right = lyrics.length - 1;
