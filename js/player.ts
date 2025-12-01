@@ -288,6 +288,10 @@ export async function playSong(
     historyPosition = playHistory.length - 1;
   }
 
+  // 立即重置歌词状态，避免显示上一首歌的歌词
+  ui.resetLyrics();
+  currentLyrics = [];
+
   const coverUrl = await api.getAlbumCoverUrl(song);
   ui.updateCurrentSongInfo(song, coverUrl);
   ui.updateActiveItem(currentIndex, containerId);

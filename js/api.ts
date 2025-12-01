@@ -793,7 +793,7 @@ async function testAPI(apiUrl: string): Promise<boolean> {
 }
 
 // 查找可用API
-export async function findWorkingAPI(): Promise<{ success: boolean; name?: string }> {
+export async function findWorkingAPI(): Promise<{ success: boolean; name?: string; url?: string }> {
   for (const api of API_SOURCES) {
     const isWorking = await testAPI(api.url);
     if (isWorking) {
@@ -979,18 +979,32 @@ export async function getAlbumCoverUrl(song: Song, size?: number): Promise<strin
   const DEFAULT_COVER =
     'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTUiIGhlaWdodD0iNTUiIHZpZXdCb3g9IjAgMCA1NSA1NSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjU1IiBoZWlnaHQ9IjU1IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHJ4PSI4Ii8+CjxwYXRoIGQ9Ik0yNy41IDE4TDM1IDI3LjVIMzBWMzdIMjVWMjcuNUgyMEwyNy41IDE4WiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+Cjwvc3ZnPgo=';
 
-  // 支持多种图片ID字段，包括NCM格式的al.picStr
+  // 优先使用完整的图片URL
+  const picUrl =
+    song.cover ||
+    song.pic_url ||
+    song.album_pic ||
+    song?.al?.picUrl ||
+    song?.album?.picUrl ||
+    song?.album?.pic_url;
+  
+  // 如果有完整URL，直接使用
+  if (picUrl && typeof picUrl === 'string' && picUrl.startsWith('http')) {
+    const cacheKey = `cover_${song.source}_${song.id}_direct`;
+    const cached = cache.get<string>(cacheKey);
+    if (cached) return cached;
+    cache.set(cacheKey, picUrl, CacheCategory.ALBUM_COVER);
+    return picUrl;
+  }
+
+  // 否则使用图片ID
   const picId =
     song.pic_id ||
-    song.cover ||
-    song.album_pic ||
     song.pic ||
     song?.al?.picStr ||
     song?.album?.picStr ||
-    song?.album?.pic ||
     song?.al?.pic ||
-    song?.album?.pic_url ||
-    song?.pic_url;
+    song?.album?.pic;
   if (!picId) {
     return DEFAULT_COVER;
   }
@@ -1567,14 +1581,19 @@ export async function searchMusicAPI(
           // 深度提取歌曲信息
           const songInfo = extractSongInfo(song);
 
-          // 提取图片ID，支持NCM格式的al.picStr字段
+          // 提取封面URL（优先）和图片ID
+          const coverUrl =
+            song.cover ||
+            song.pic_url ||
+            song.album_pic ||
+            song?.al?.picUrl ||
+            song?.album?.picUrl;
           const picId =
             song.pic_id ||
-            song.cover ||
-            song.album_pic ||
             song.pic ||
             song?.al?.picStr ||
             song?.album?.picStr ||
+            song?.al?.pic ||
             song?.album?.pic;
 
           return {
@@ -1585,11 +1604,32 @@ export async function searchMusicAPI(
             name: songInfo,
             artist: artistInfo,
             album: albumInfo,
+            cover: coverUrl,
             pic_id: picId,
             // 保留原始数据以便后续使用
             rawData: song,
           };
         });
+
+      // 精确匹配过滤：如果搜索词与某个歌手名完全相同，只返回该歌手的歌曲
+      const keywordLower = keyword.toLowerCase().trim();
+      const exactArtistMatch = songs.filter((song) => {
+        const artists = Array.isArray(song.artist) ? song.artist : [song.artist];
+        return artists.some((a: string) => a.toLowerCase().trim() === keywordLower);
+      });
+
+      if (exactArtistMatch.length > 0) {
+        // 完全匹配歌手名，只返回该歌手的歌曲
+        songs = exactArtistMatch;
+      } else {
+        // 没有完全匹配歌手名时，只匹配歌曲名包含搜索词的情况
+        // 严格模式：不再使用宽松的歌手名部分匹配（避免"习良5566"匹配"5566"）
+        songs = songs.filter((song) => {
+          const songName = (song.name || '').toLowerCase();
+          // 只检查歌曲名是否包含搜索词
+          return songName.includes(keywordLower);
+        });
+      }
 
       // 缓存搜索结果
       cache.set(cacheKey, songs, CacheCategory.SEARCH);

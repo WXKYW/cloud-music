@@ -375,6 +375,20 @@ export function updateProgress(currentTime: number, duration: number): void {
 let lastActiveLyricIndex = -1;
 let lastRenderedLyrics: LyricLine[] = [];
 
+// 重置歌词状态（切换歌曲时调用）
+export function resetLyrics(): void {
+  lastActiveLyricIndex = -1;
+  lastRenderedLyrics = [];
+  const inlineContainer = document.getElementById('lyricsContainerInline');
+  if (inlineContainer) {
+    inlineContainer.innerHTML = `
+      <div class="lyric-line lyric-prev"></div>
+      <div class="lyric-line lyric-current active">加载歌词中...</div>
+      <div class="lyric-line lyric-next"></div>
+    `;
+  }
+}
+
 export function updateLyrics(lyrics: LyricLine[], currentTime: number): void {
   const inlineContainer = document.getElementById('lyricsContainerInline');
   if (!inlineContainer) return;
@@ -414,8 +428,8 @@ export function updateLyrics(lyrics: LyricLine[], currentTime: number): void {
 
 // 优化: 二分查找活动歌词
 function findActiveLyricIndex(lyrics: LyricLine[], currentTime: number): number {
-  // 歌词时间直接匹配，不做提前量调整
-  const adjustedTime = currentTime;
+  // 老王修复：添加0.3秒提前量，让歌词提前显示以便用户跟唱
+  const adjustedTime = currentTime + 0.3;
 
   let left = 0;
   let right = lyrics.length - 1;
