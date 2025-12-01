@@ -72,7 +72,6 @@ class PerformanceMonitor {
     // 收集内存信息（仅Chrome）
     this.collectMemoryMetrics();
 
-    console.log('📊 性能监控已启动');
   }
 
   /**
@@ -93,7 +92,6 @@ class PerformanceMonitor {
         totalTime: navigation.loadEventEnd - navigation.fetchStart,
       };
 
-      console.log('📊 页面加载指标:', this.metrics.loadMetrics);
     }
   }
 
@@ -221,7 +219,7 @@ class PerformanceMonitor {
    * 打印性能报告到控制台
    */
   printReport(): void {
-    console.log(this.getReport());
+    // Report available via getReport()
   }
 
   /**
@@ -230,7 +228,6 @@ class PerformanceMonitor {
   cleanup(): void {
     this.observers.forEach((observer) => observer.disconnect());
     this.observers = [];
-    console.log('📊 性能监控已停止');
   }
 }
 

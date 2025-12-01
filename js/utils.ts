@@ -174,12 +174,10 @@ export const storage = {
           if (cacheKeys.length > 0) {
             // 删除最早的缓存项
             localStorage.removeItem(cacheKeys[0]);
-            console.log(`已清理缓存: ${cacheKeys[0]}`);
 
             // 重试一次
             try {
               localStorage.setItem(key, JSON.stringify(value));
-              console.log('清理后保存成功');
               return true;
             } catch (retryError) {
               console.error('清理后仍无法保存数据:', retryError);

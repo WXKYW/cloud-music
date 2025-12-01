@@ -46,7 +46,6 @@ class IndexedDBStorage {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('IndexedDB 初始化成功');
         resolve();
       };
 
@@ -58,7 +57,6 @@ class IndexedDBStorage {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'key' });
           objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-          console.log('✅ IndexedDB 通用存储创建成功');
         }
 
         // V2: 创建播放历史专用存储
@@ -69,7 +67,6 @@ class IndexedDBStorage {
           });
           historyStore.createIndex('timestamp', 'timestamp', { unique: false });
           historyStore.createIndex('songId', 'songId', { unique: false });
-          console.log('✅ IndexedDB 播放历史存储创建成功');
         }
 
         // V2: 创建收藏列表专用存储
@@ -81,7 +78,6 @@ class IndexedDBStorage {
           favoritesStore.createIndex('timestamp', 'timestamp', { unique: false });
           favoritesStore.createIndex('songId', 'songId', { unique: false });
           favoritesStore.createIndex('source', 'source', { unique: false });
-          console.log('✅ IndexedDB 收藏列表存储创建成功');
         }
       };
     });
@@ -427,7 +423,6 @@ class IndexedDBStorage {
     await this.init();
 
     if (this.fallbackToLocalStorage) {
-      console.log('使用 localStorage 模式，无需迁移');
       return { success: 0, failed: 0 };
     }
 
@@ -455,7 +450,6 @@ class IndexedDBStorage {
       const success = await this.setItems(items);
       if (success) {
         stats.success = items.size;
-        console.log(`成功迁移 ${stats.success} 条数据到 IndexedDB`);
       } else {
         stats.failed += items.size;
       }
@@ -574,7 +568,6 @@ class IndexedDBStorage {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log('✅ 播放历史已清空');
         resolve(true);
       };
 
@@ -666,7 +659,6 @@ class IndexedDBStorage {
       request.onerror = () => {
         // 可能是重复键错误，检查一下
         if (request.error?.name === 'ConstraintError') {
-          console.log('歌曲已在收藏中');
           resolve(true);
         } else {
           console.error('添加收藏失败:', request.error);
@@ -811,7 +803,6 @@ class IndexedDBStorage {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log('✅ 收藏列表已清空');
         resolve(true);
       };
 
@@ -841,7 +832,6 @@ class IndexedDBStorage {
     };
 
     if (this.fallbackToLocalStorage) {
-      console.log('使用 localStorage 模式，无需迁移播放数据');
       return result;
     }
 
@@ -853,7 +843,6 @@ class IndexedDBStorage {
         try {
           const history = JSON.parse(historyData);
           if (Array.isArray(history) && history.length > 0) {
-            console.log(`🔄 开始迁移 ${history.length} 条播放历史...`);
             for (const song of history) {
               const success = await this.addToHistory(song);
               if (success) {
@@ -862,9 +851,6 @@ class IndexedDBStorage {
                 result.historyFailed++;
               }
             }
-            console.log(
-              `✅ 播放历史迁移完成: ${result.historyMigrated} 成功, ${result.historyFailed} 失败`
-            );
 
             // 迁移成功后删除localStorage数据
             if (result.historyMigrated > 0) {
@@ -888,7 +874,6 @@ class IndexedDBStorage {
             for (const [_key, playlist] of data.playlists) {
               if ((playlist as any).isFavorites && (playlist as any).songs) {
                 const songs = (playlist as any).songs;
-                console.log(`🔄 开始迁移 ${songs.length} 首收藏歌曲...`);
                 for (const song of songs) {
                   const success = await this.addToFavorites(song);
                   if (success) {
@@ -897,9 +882,6 @@ class IndexedDBStorage {
                     result.favoritesFailed++;
                   }
                 }
-                console.log(
-                  `✅ 收藏列表迁移完成: ${result.favoritesMigrated} 成功, ${result.favoritesFailed} 失败`
-                );
                 break; // 只处理第一个收藏歌单
               }
             }

@@ -25,7 +25,6 @@ export class ThemeManager {
     // 监听系统主题变化
     this.mediaQuery.addEventListener('change', this.handleSystemThemeChange.bind(this));
 
-    console.log('🎨 主题管理器初始化完成，当前主题:', this.currentTheme);
   }
 
   /**
@@ -66,7 +65,6 @@ export class ThemeManager {
     // 更新meta theme-color
     this.updateMetaThemeColor(effectiveTheme);
 
-    console.log(`✅ 已应用${effectiveTheme === 'dark' ? '暗色' : '亮色'}主题`);
   }
 
   /**
@@ -131,7 +129,6 @@ export class ThemeManager {
       auto: '自动模式',
     };
 
-    console.log(`🎨 已切换到${themeNames[theme]}`);
   }
 
   /**
@@ -187,6 +184,5 @@ export class ThemeManager {
   public destroy(): void {
     this.mediaQuery.removeEventListener('change', this.handleSystemThemeChange.bind(this));
     this.listeners.clear();
-    console.log('🎨 主题管理器已销毁');
   }
 }

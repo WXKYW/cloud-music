@@ -24,8 +24,8 @@ class Logger {
   private currentLevel: LogLevel;
 
   constructor() {
-    // 生产环境默认只显示警告和错误
-    this.currentLevel = isProduction ? LogLevel.WARN : LogLevel.DEBUG;
+    // 默认禁用所有日志输出
+    this.currentLevel = LogLevel.NONE;
   }
 
   setLevel(level: LogLevel) {

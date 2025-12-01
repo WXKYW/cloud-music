@@ -296,7 +296,7 @@ body {
   display: grid;
   grid-template-columns: 2fr 1.5fr 1fr; /* 优化比例：内容区更宽 */
   gap: 20px;
-  min-height: calc(100vh - 200px);
+  min-height: calc(100vh - 120px);
 }
 
 .content-section,
@@ -1702,8 +1702,8 @@ body {
     flex-direction: row;
     gap: 0;
     padding: 0;
-    margin-top: 130px; /* 减小顶部间距，避免搜索框遮挡 */
-    min-height: calc(100vh - 130px);
+    margin-top: 110px; /* 减小顶部间距 */
+    min-height: calc(100vh - 110px);
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -2190,10 +2190,10 @@ body {
     font-size: 20px;
   }
 
-  /* 老王优化：小屏手机适配，减少拥挤感 + 修复搜索框遮挡 */
+  /* 老王优化：小屏手机适配，减少拥挤感 */
   .main-container {
-    margin-top: 125px; /* 修复：从120px增加到125px，避免搜索框遮挡 */
-    min-height: calc(100vh - 125px);
+    margin-top: 105px;
+    min-height: calc(100vh - 105px);
   }
 
   .content-section,

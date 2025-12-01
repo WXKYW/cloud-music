@@ -12,7 +12,6 @@ export function initAuth(): void {
 
 export function loadDailyRecommend(): void {
   // 加载每日推荐
-  console.log('📅 正在加载每日推荐...');
 }
 
 function checkLoginStatus(): void {

@@ -67,24 +67,7 @@ if (typeof window !== 'undefined') {
 }
 
 export function init(): void {
-  // 修复BUG-001：添加严格的元素检查
   const lyricsContainer = document.getElementById('lyricsContainerInline');
-
-  if (!lyricsContainer) {
-    console.error('❌ [UI.init] 致命错误：找不到歌词容器 #lyricsContainerInline');
-    console.error('❌ [UI.init] 请检查 index.html 中是否存在该元素');
-    // 创建警告提示
-    document.body.insertAdjacentHTML(
-      'afterbegin',
-      `
-            <div style="position:fixed;top:0;left:0;right:0;background:#f44336;color:#fff;padding:10px;text-align:center;z-index:9999;">
-                ⚠️ 歌词功能初始化失败：缺少必需的DOM元素
-            </div>
-        `
-    );
-  } else {
-    console.log('✅ [UI.init] 歌词容器初始化成功');
-  }
 
   DOM = {
     searchResults: document.getElementById('searchResults')!,
@@ -97,24 +80,10 @@ export function init(): void {
     progressFill: document.getElementById('progressFill')!,
     currentTime: document.getElementById('currentTime')!,
     totalTime: document.getElementById('totalTime')!,
-    // 修复：确保歌词容器存在，不存在则抛出错误
     lyricsContainer: lyricsContainer!,
     downloadSongBtn: document.getElementById('downloadSongBtn') as HTMLButtonElement | null,
     downloadLyricBtn: document.getElementById('downloadLyricBtn') as HTMLButtonElement | null,
   };
-
-  // 修复：验证所有关键元素
-  const criticalElements: Array<keyof DOMElements> = [
-    'searchResults',
-    'playBtn',
-    'currentCover',
-    'lyricsContainer',
-  ];
-  criticalElements.forEach((key) => {
-    if (!DOM[key]) {
-      console.error(`❌ 关键元素缺失: ${key}`);
-    }
-  });
 }
 
 // --- UI Functions ---
@@ -224,7 +193,6 @@ export function displaySearchResults(
 
   if (songs.length > USE_VIRTUAL_SCROLL_THRESHOLD) {
     // 使用虚拟滚动优化性能
-    console.log(`🚀 启用虚拟滚动优化 (${songs.length} 首歌曲)`);
     const virtualScroll = createSongListVirtualScroll(
       container,
       songs,
@@ -345,7 +313,6 @@ export function displaySearchResults(
 export function updatePlayButton(isPlaying: boolean): void {
   // 防御性检查
   if (!DOM || !DOM.playBtn) {
-    console.warn('⚠️ updatePlayButton: DOM.playBtn未初始化');
     return;
   }
   const icon = DOM.playBtn.querySelector('i')!;
@@ -355,13 +322,11 @@ export function updatePlayButton(isPlaying: boolean): void {
 export function updateCurrentSongInfo(song: Song, coverUrl: string): void {
   // 防御性检查：确保DOM已初始化
   if (!DOM || !DOM.currentTitle || !DOM.currentArtist) {
-    console.error('❌ updateCurrentSongInfo: DOM元素未初始化');
     return;
   }
 
   // 防御性检查：如果song无效，显示默认信息
   if (!song || typeof song !== 'object') {
-    console.warn('⚠️ updateCurrentSongInfo: song对象无效');
     DOM.currentTitle.textContent = '未知歌曲';
     DOM.currentArtist.textContent = '未知艺术家';
     return;
@@ -411,117 +376,46 @@ let lastActiveLyricIndex = -1;
 let lastRenderedLyrics: LyricLine[] = [];
 
 export function updateLyrics(lyrics: LyricLine[], currentTime: number): void {
-  // 优化：减少日志输出，只在出错时记录
-  // 修复：增强安全检查
-  if (!DOM.lyricsContainer || !DOM.lyricsContainer.parentNode) {
-    console.warn('⚠️ 歌词容器不可用，跳过更新');
-    return;
-  }
+  const inlineContainer = document.getElementById('lyricsContainerInline');
+  if (!inlineContainer) return;
 
   if (!lyrics.length) {
-    if (DOM.lyricsContainer) {
-      DOM.lyricsContainer.innerHTML = '<div class="lyric-line">暂无歌词</div>';
-    }
-    const inlineContainer = document.getElementById('lyricsContainerInline');
-    if (inlineContainer) {
-      // 修复：保持三行结构
-      inlineContainer.innerHTML = `
-        <div class="lyric-line lyric-prev"></div>
-        <div class="lyric-line lyric-current active">暂无歌词</div>
-        <div class="lyric-line lyric-next"></div>
-      `;
-    }
+    inlineContainer.innerHTML = `
+      <div class="lyric-line lyric-prev"></div>
+      <div class="lyric-line lyric-current active">暂无歌词</div>
+      <div class="lyric-line lyric-next"></div>
+    `;
     lastActiveLyricIndex = -1;
     lastRenderedLyrics = [];
     return;
   }
 
-  // 优化: 检查是否需要重新渲染歌词列表
   const needsRerender = lyrics !== lastRenderedLyrics;
 
   if (needsRerender) {
-    renderLyricsList(lyrics);
     lastRenderedLyrics = lyrics;
-    lastActiveLyricIndex = -1; // 重置索引
-
-    // 修复：确保三行歌词容器的HTML结构存在
-    const inlineContainer = document.getElementById('lyricsContainerInline');
-    if (inlineContainer) {
-      const lines = inlineContainer.querySelectorAll('.lyric-line');
-      if (lines.length !== 3) {
-        // 重新创建三行结构
-        inlineContainer.innerHTML = `
-          <div class="lyric-line lyric-prev"></div>
-          <div class="lyric-line lyric-current active">加载中...</div>
-          <div class="lyric-line lyric-next"></div>
-        `;
-        console.log('✅ [updateLyrics] 重建三行歌词结构');
-      }
-    }
-
-    // 修复: 首次渲染后立即更新激活状态
-    const activeIndex = findActiveLyricIndex(lyrics, currentTime);
-    if (activeIndex >= 0) {
-      lastActiveLyricIndex = activeIndex;
-      updateLyricActiveState(DOM.lyricsContainer, activeIndex);
-
-      if (inlineContainer) {
-        updateLyricActiveState(inlineContainer, activeIndex);
-      }
-    }
-    return;
+    lastActiveLyricIndex = -1;
+    // 初始化歌词容器结构
+    inlineContainer.innerHTML = `
+      <div class="lyric-line lyric-prev"></div>
+      <div class="lyric-line lyric-current active"></div>
+      <div class="lyric-line lyric-next"></div>
+    `;
   }
 
-  // 优化: 二分查找活动歌词索引
   const activeIndex = findActiveLyricIndex(lyrics, currentTime);
 
-  // 优化: 只在索引变化时更新 DOM
-  if (activeIndex === lastActiveLyricIndex) {
-    return;
-  }
+  if (activeIndex === lastActiveLyricIndex) return;
 
   lastActiveLyricIndex = activeIndex;
-
-  // 优化: 只更新激活状态，而不是重新渲染整个列表
-  updateLyricActiveState(DOM.lyricsContainer, activeIndex);
-
-  const inlineContainer = document.getElementById('lyricsContainerInline');
-  if (inlineContainer) {
-    updateLyricActiveState(inlineContainer, activeIndex);
-  }
+  updateLyricActiveState(inlineContainer, activeIndex);
 }
 
-// 优化: 渲染歌词列表 - 增强安全检查
-function renderLyricsList(lyrics: LyricLine[]): void {
-  // 老王修复BUG-LYRICS-002：不要破坏三行歌词容器的固定结构！
-  // 三行歌词容器只有3个固定div，不应该被替换成所有歌词的列表
-  // 优化：减少日志输出
-
-  // 对于标准歌词容器（如果有的话），渲染完整列表
-  if (DOM.lyricsContainer && DOM.lyricsContainer.parentNode) {
-    const containerId = DOM.lyricsContainer.id;
-    // 只有非三行歌词容器才渲染完整列表
-    if (containerId !== 'lyricsContainerInline') {
-      const lyricsHTML = lyrics
-        .map(
-          (line, index) =>
-            `<div class="lyric-line" data-time="${escapeHtml(String(line.time))}" data-index="${escapeHtml(String(index))}">${escapeHtml(line.text)}</div>`
-        )
-        .join('');
-      DOM.lyricsContainer.innerHTML = lyricsHTML;
-      // 优化：减少日志输出
-    }
-  }
-
-  // 三行歌词容器不需要重新渲染HTML，只需要在updateLyricActiveState中更新内容
-  // 优化：减少日志输出
-}
 
 // 优化: 二分查找活动歌词
-// 修复：添加0.5秒的提前补偿，使歌词提前显示并与歌曲同步
 function findActiveLyricIndex(lyrics: LyricLine[], currentTime: number): number {
-  // 提前500ms显示歌词（加上时间，让歌词提前出现）
-  const adjustedTime = currentTime + 0.5;
+  // 歌词时间直接匹配，不做提前量调整
+  const adjustedTime = currentTime;
 
   let left = 0;
   let right = lyrics.length - 1;
@@ -541,103 +435,25 @@ function findActiveLyricIndex(lyrics: LyricLine[], currentTime: number): number 
   return result;
 }
 
-// 优化: 只更新激活状态，不重新渲染 - 支持三行歌词显示
-function updateLyricActiveState(container: HTMLElement | null, activeIndex: number): void {
-  if (!container) {
-    console.warn('⚠️ [updateLyricActiveState] 容器为空');
-    return;
-  }
-
+function updateLyricActiveState(container: HTMLElement, activeIndex: number): void {
   const lines = container.querySelectorAll('.lyric-line');
-  // 优化：减少日志输出，只在调试时启用
-  // console.log('🎯 [updateLyricActiveState]', {...});
+  if (lines.length < 3) return;
 
-  if (lines.length === 0) {
-    console.warn('⚠️ [updateLyricActiveState] 没有找到歌词行元素');
+  const prevLine = lines[0] as HTMLElement;
+  const currentLine = lines[1] as HTMLElement;
+  const nextLine = lines[2] as HTMLElement;
+
+  const allLyrics = lastRenderedLyrics;
+  if (allLyrics.length === 0 || activeIndex < 0 || activeIndex >= allLyrics.length) {
+    prevLine.textContent = '';
+    currentLine.textContent = '暂无歌词';
+    nextLine.textContent = '';
     return;
   }
 
-  // 检查是否是内联三行歌词容器
-  const isInlineContainer = container.id === 'lyricsContainerInline';
-
-  if (isInlineContainer && lines.length >= 3) {
-    // 优化：减少日志输出
-
-    // 三行歌词模式：上一句、当前句、下一句
-    const prevLine = lines[0] as HTMLElement;
-    const currentLine = lines[1] as HTMLElement;
-    const nextLine = lines[2] as HTMLElement;
-
-    // 清除所有类名
-    prevLine.className = 'lyric-line lyric-prev';
-    currentLine.className = 'lyric-line lyric-current active';
-    nextLine.className = 'lyric-line lyric-next';
-
-    // 获取歌词数组
-    const allLyrics = lastRenderedLyrics;
-    if (allLyrics.length === 0) {
-      prevLine.textContent = '';
-      currentLine.textContent = '暂无歌词';
-      nextLine.textContent = '';
-      // 优化：减少日志输出
-      return;
-    }
-
-    // 更新三行歌词内容
-    if (activeIndex >= 0 && activeIndex < allLyrics.length) {
-      // 上一句
-      if (activeIndex > 0) {
-        prevLine.textContent = allLyrics[activeIndex - 1].text;
-      } else {
-        prevLine.textContent = '';
-      }
-
-      // 当前句
-      currentLine.textContent = allLyrics[activeIndex].text;
-
-      // 下一句
-      if (activeIndex < allLyrics.length - 1) {
-        nextLine.textContent = allLyrics[activeIndex + 1].text;
-      } else {
-        nextLine.textContent = '';
-      }
-
-      // 优化：减少日志输出，只在开发调试时启用
-      // console.log('✅ [updateLyricActiveState] 三行歌词已更新', {...});
-    } else {
-      prevLine.textContent = '';
-      currentLine.textContent = '暂无歌词';
-      nextLine.textContent = '';
-      console.warn('⚠️ [updateLyricActiveState] activeIndex超出范围');
-    }
-  } else {
-    // 优化：减少日志输出
-
-    // 标准歌词容器：滚动模式
-    // 移除之前的激活状态
-    const previousActive = container.querySelector('.lyric-line.active');
-    if (previousActive) {
-      previousActive.classList.remove('active');
-    }
-
-    // 添加新的激活状态
-    if (activeIndex >= 0 && activeIndex < lines.length) {
-      const activeLine = lines[activeIndex];
-
-      if (activeLine) {
-        activeLine.classList.add('active');
-
-        // 优化: 使用 requestAnimationFrame 优化滚动
-        requestAnimationFrame(() => {
-          activeLine.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'nearest',
-          });
-        });
-      }
-    }
-  }
+  prevLine.textContent = activeIndex > 0 ? allLyrics[activeIndex - 1].text : '';
+  currentLine.textContent = allLyrics[activeIndex].text;
+  nextLine.textContent = activeIndex < allLyrics.length - 1 ? allLyrics[activeIndex + 1].text : '';
 }
 
 // 老王修复BUG：更新当前播放歌曲的高亮状态
@@ -656,20 +472,16 @@ export function updateActiveItem(currentIndex: number, containerId: string): voi
 }
 
 export function showLoading(containerId: string = 'searchResults'): void {
-  // 老王修复BUG-UI-001：添加容器存在性检查
   const container = document.getElementById(containerId);
   if (!container) {
-    console.error(`❌ 找不到容器元素: ${containerId}`);
     return;
   }
   container.innerHTML = `<div class="loading"><i class="fas fa-spinner"></i><div>正在加载...</div></div>`;
 }
 
 export function showError(message: string, containerId: string = 'searchResults'): void {
-  // 老王修复BUG-UI-001：添加容器存在性检查
   const container = document.getElementById(containerId);
   if (!container) {
-    console.error(`❌ 找不到容器元素: ${containerId}`);
     return;
   }
   container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i><div>${escapeHtml(message)}</div></div>`;
@@ -699,7 +511,7 @@ function handleBatchAction(action: string, containerId: string): void {
       break;
 
     default:
-      console.warn(`未知的批量操作: ${action}`);
+      break;
   }
 }
 

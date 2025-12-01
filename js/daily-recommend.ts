@@ -35,7 +35,6 @@ export function initDailyRecommend() {
 
   // 监听用户登录事件，登录后自动刷新推荐
   window.addEventListener('userLoggedIn', () => {
-    console.log('👤 用户已登录，刷新个性化推荐...');
     loadDailyRecommend(true);
   });
 }
@@ -78,8 +77,6 @@ async function displayRecommendSongs(songs: Song[], containerId: string = 'searc
 
   // 使用统一的显示方法，自动包含批量操作功能
   displaySearchResults(songs, containerId, songs);
-  
-  console.log(`✅ 已在 ${containerId} 显示 ${songs.length} 首推荐歌曲`);
 }
 
 // 加载每日推荐
@@ -119,12 +116,11 @@ export async function loadDailyRecommend(forceRefresh: boolean = false, containe
     try {
       const dailySongs = await getDailyRecommendSongs();
       if (dailySongs.length > 0) {
-        console.log(`✅ 获取到 ${dailySongs.length} 首个性化推荐歌曲`);
         songs = dailySongs;
         isPersonalized = true;
       }
     } catch (e) {
-      console.log('无需登录或获取个性化推荐失败，降级到榜单推荐');
+      // 降级到榜单推荐
     }
 
     // 2. 降级方案：榜单混合推荐

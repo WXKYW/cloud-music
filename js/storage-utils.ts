@@ -87,7 +87,6 @@ export function safeRemoveItem(key: string): boolean {
  * 使用多级清理策略，避免一次性删除过多数据
  */
 function tryCleanupStorage(currentKey: string): boolean {
-  console.log('🧹 开始渐进式清理 localStorage...');
 
   // 第一阶段：清理明确的临时和缓存数据
   const cleanupPriority = [
@@ -108,7 +107,6 @@ function tryCleanupStorage(currentKey: string): boolean {
     }
 
     if (keysToRemove.length > 0) {
-      console.log(`清理 ${desc}: ${keysToRemove.length} 项`);
       keysToRemove.forEach((key) => localStorage.removeItem(key));
       return true;
     }
@@ -156,7 +154,6 @@ function progressiveCleanupHistory(excludeKey: string): boolean {
 
       try {
         localStorage.setItem(historyKey, JSON.stringify(reducedHistory));
-        console.log(`✅ ${strategy.desc}，保留 ${keepCount}/${history.length} 条记录`);
         return true;
       } catch (error) {
         // 如果这个策略也失败，尝试更激进的策略
@@ -190,7 +187,6 @@ function compressLargestItem(excludeKey: string): boolean {
   }
 
   if (largestKey) {
-    console.log(`压缩最大项: ${largestKey} (${(largestSize / 1024).toFixed(2)} KB)`);
     try {
       const data = localStorage.getItem(largestKey);
       if (data) {
@@ -269,9 +265,6 @@ export function cleanupExpiredData(): number {
     cleanedCount++;
   });
 
-  if (cleanedCount > 0) {
-    console.log(`🧹 清理了 ${cleanedCount} 个过期项`);
-  }
 
   return cleanedCount;
 }

@@ -32,9 +32,7 @@ class LyricsWorkerManager {
       this.worker.addEventListener('error', this.handleError.bind(this));
 
       this.workerReady = true;
-      console.log('✅ 歌词 Worker 初始化成功');
-    } catch (error) {
-      console.error('❌ 歌词 Worker 初始化失败，使用降级方案:', error);
+    } catch {
       this.workerReady = false;
       // BUG-003修复: Worker初始化失败时，创建降级Worker接口
       this.createFallbackWorker();
@@ -45,7 +43,6 @@ class LyricsWorkerManager {
    * BUG-003修复: 创建降级Worker（模拟Worker接口）
    */
   private createFallbackWorker(): void {
-    console.log('📦 创建降级Worker接口');
 
     // 创建一个模拟Worker对象，实现必要的接口
     const mockWorker = {
@@ -76,13 +73,11 @@ class LyricsWorkerManager {
       },
       terminate: () => {
         // 降级模式没有实际Worker需要终止
-        console.log('🧹 降级Worker已终止');
       },
     };
 
     this.worker = mockWorker as any;
     this.workerReady = true;
-    console.log('✅ 降级Worker创建成功');
   }
 
   /**
@@ -93,7 +88,6 @@ class LyricsWorkerManager {
 
     const request = this.pendingRequests.get(id);
     if (!request) {
-      console.warn('收到未知请求的响应:', id);
       return;
     }
 
@@ -109,9 +103,7 @@ class LyricsWorkerManager {
   /**
    * 处理 Worker 错误
    */
-  private handleError(event: ErrorEvent): void {
-    console.error('歌词 Worker 错误:', event.message);
-
+  private handleError(_event: ErrorEvent): void {
     // 拒绝所有待处理的请求
     this.pendingRequests.forEach((request) => {
       request.reject(new Error('Worker 处理失败'));
@@ -125,7 +117,6 @@ class LyricsWorkerManager {
   async parseLyric(lyric: string): Promise<LyricLine[]> {
     // 如果 Worker 未就绪，使用降级方案
     if (!this.workerReady || !this.worker) {
-      console.warn('Worker 不可用，使用主线程解析');
       return this.parseLyricFallback(lyric);
     }
 
@@ -174,7 +165,6 @@ class LyricsWorkerManager {
     const offsetMatch = lyric.match(/\[offset:(-?\d+)\]/i);
     if (offsetMatch) {
       offsetMs = parseInt(offsetMatch[1], 10);
-      console.log(`🎵 [歌词偏移] 检测到offset: ${offsetMs}ms`);
     }
 
     for (const line of lyricLines) {
@@ -227,7 +217,6 @@ class LyricsWorkerManager {
       this.worker.terminate();
       this.worker = null;
       this.workerReady = false;
-      console.log('🧹 歌词 Worker 已销毁');
     }
   }
 

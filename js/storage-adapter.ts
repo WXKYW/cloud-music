@@ -26,9 +26,7 @@ class UnifiedStorageAdapter implements StorageAdapter {
 
     try {
       // 尝试执行数据迁移
-      console.log('开始数据迁移...');
       const stats = await indexedDBStorage.migrateFromLocalStorage();
-      console.log(`数据迁移完成: 成功 ${stats.success} 条, 失败 ${stats.failed} 条`);
       this.migrated = true;
     } catch (error) {
       console.error('数据迁移失败:', error);
@@ -175,7 +173,6 @@ export async function preloadToCache(keys: string[]): Promise<void> {
     items.forEach((value, key) => {
       syncCache.set(key, value);
     });
-    console.log(`已预加载 ${items.size} 个键到缓存`);
   } catch (error) {
     console.error('预加载失败:', error);
   }

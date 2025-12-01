@@ -40,7 +40,6 @@ function parseLRC(lyric: string): LyricLine[] {
   const offsetMatch = lyric.match(/\[offset:(-?\d+)\]/i);
   if (offsetMatch) {
     offsetMs = parseInt(offsetMatch[1], 10);
-    console.log(`🎵 [Worker歌词偏移] 检测到offset: ${offsetMs}ms`);
   }
 
   for (const line of lyricLines) {

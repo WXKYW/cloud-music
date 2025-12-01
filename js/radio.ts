@@ -191,7 +191,6 @@ async function loadMoreFMSongs(): Promise<void> {
     const moreSongs = await api.getPersonalFM();
     if (moreSongs.length > 0) {
       radioPlaylist.push(...moreSongs);
-      console.log(`🎵 已加载 ${moreSongs.length} 首新FM推荐`);
     }
   } catch (error) {
     console.warn('加载更多FM失败:', error);

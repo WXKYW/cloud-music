@@ -107,14 +107,6 @@ export async function proxyFetch(
   source?: string
 ): Promise<Response> {
   const proxiedUrl = getProxiedUrl(url, source);
-
-  console.log('🌐 代理请求:', {
-    original: url,
-    proxied: proxiedUrl,
-    source,
-    needsProxy: url !== proxiedUrl,
-  });
-
   return fetch(proxiedUrl, options);
 }
 

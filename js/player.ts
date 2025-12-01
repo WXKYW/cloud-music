@@ -67,8 +67,6 @@ function addManagedEventListener(
 
 // 清理所有事件监听器
 export function cleanup(): void {
-  console.log('🧹 清理播放器事件监听器...');
-
   // BUG-002修复: 清理状态检查定时器
   const stateCheckInterval = (window as any).playerStateCheckInterval;
   if (stateCheckInterval !== null && stateCheckInterval !== undefined) {
@@ -87,26 +85,21 @@ export function cleanup(): void {
     audioPlayer.pause();
     audioPlayer.src = '';
   }
-
-  console.log('✅ 播放器清理完成');
 }
 
 // 老王修复：初始化播放器，确保获取到HTML中的audio元素并绑定事件
 function initAudioPlayer(): void {
   const audioElement = document.getElementById('audioPlayer') as HTMLAudioElement;
   if (!audioElement) {
-    console.error('❌ 找不到audio元素，创建新的audio元素');
     audioPlayer = new Audio();
     audioPlayer.id = 'audioPlayer';
     document.body.appendChild(audioPlayer);
   } else {
     audioPlayer = audioElement;
-    console.log('✅ 成功获取页面中的audio元素');
   }
 
   // 老王修复：在audioPlayer初始化后绑定事件监听器
   const playHandler = () => {
-    console.log('🎵 播放事件触发');
     isPlaying = true;
     ui.updatePlayButton(true);
     document.getElementById('currentCover')?.classList.add('playing');
@@ -114,7 +107,6 @@ function initAudioPlayer(): void {
   addManagedEventListener(audioPlayer as any, 'play', playHandler);
 
   const pauseHandler = () => {
-    console.log('⏸️ 暂停事件触发');
     isPlaying = false;
     ui.updatePlayButton(false);
     document.getElementById('currentCover')?.classList.remove('playing');
@@ -123,7 +115,6 @@ function initAudioPlayer(): void {
 
   // 修复: 添加 playing 事件监听，确保状态同步
   const playingHandler = () => {
-    console.log('▶️ playing 事件触发（实际开始播放）');
     isPlaying = true;
     ui.updatePlayButton(true);
     document.getElementById('currentCover')?.classList.add('playing');
@@ -131,15 +122,11 @@ function initAudioPlayer(): void {
   addManagedEventListener(audioPlayer as any, 'playing', playingHandler);
 
   // 修复: 添加 waiting 事件监听，显示缓冲状态
-  const waitingHandler = () => {
-    console.log('⏳ 缓冲中...');
-  };
+  const waitingHandler = () => {};
   addManagedEventListener(audioPlayer as any, 'waiting', waitingHandler);
 
   // 修复: 添加 canplay 事件监听
-  const canplayHandler = () => {
-    console.log('✅ 音频可以播放');
-  };
+  const canplayHandler = () => {};
   addManagedEventListener(audioPlayer as any, 'canplay', canplayHandler);
 
   const endedHandler = () => {
@@ -175,18 +162,8 @@ function initAudioPlayer(): void {
         !audioPlayer.paused && !audioPlayer.ended && audioPlayer.currentTime > 0;
 
       if (isPlaying !== actuallyPlaying) {
-        console.warn('⚠️ 播放器状态不同步！修正中...', {
-          variable: isPlaying,
-          actual: actuallyPlaying,
-          paused: audioPlayer.paused,
-          ended: audioPlayer.ended,
-          currentTime: audioPlayer.currentTime,
-          retryCount: stateCheckRetryCount,
-        });
-
         // BUG-001修复: 检查重试次数限制
         if (stateCheckRetryCount >= MAX_STATE_CHECK_RETRIES) {
-          console.error('❌ 状态同步重试次数过多，停止自动修正');
           isPlaying = false;
           ui.updatePlayButton(false);
           document.getElementById('currentCover')?.classList.remove('playing');
@@ -235,20 +212,14 @@ function initAudioPlayer(): void {
   };
   addManagedEventListener(audioPlayer as any, 'timeupdate', timeupdateHandler);
 
-  const errorHandler = async (e: Event) => {
-    console.error('播放器错误:', e);
-
+  const errorHandler = async () => {
     consecutiveFailures++;
 
     // 优化: 连续失败2次后先尝试切换API源
     if (consecutiveFailures >= 2 && consecutiveFailures < 4) {
       const switched = await api.switchToNextAPI();
       if (switched) {
-        ui.showNotification(
-          `当前音乐源异常，已自动切换到 ${api.getCurrentSourceName()}`,
-          'warning'
-        );
-        // 重置失败计数，用新源重试当前歌曲
+        ui.showNotification(`已自动切换到 ${api.getCurrentSourceName()}`, 'warning');
         consecutiveFailures = 0;
         setTimeout(() => playSong(currentIndex, currentPlaylist, lastActiveContainer), 1000);
         return;
@@ -297,7 +268,6 @@ export async function playSong(
 
   // 防御性检查：确保歌曲对象有效
   if (!song || typeof song !== 'object' || !song.id) {
-    console.error('❌ playSong: 无效的歌曲对象', { index, song });
     ui.showNotification('歌曲数据异常，尝试下一首...', 'warning');
     // 尝试播放下一首
     if (index + 1 < playlist.length) {
@@ -357,19 +327,6 @@ export async function playSong(
 
       // P0-2 优化: 检查 PlaybackAnalytics 是否建议跳过该歌曲的此音源
       if (playbackAnalytics.shouldSkip(song.id, song.source, quality)) {
-        console.warn(
-          `⚠️ [播放] 跳过歌曲 ${song.name} 的 ${
-            QUALITY_NAMES[quality] || quality
-          } 音源，因历史失败记录.`
-        );
-        ui.showNotification(
-          `歌曲《${song.name}》的 ${
-            QUALITY_NAMES[quality] || quality
-          } 音源因频繁失败已被跳过，正在尝试其他品质/音源...`,
-          'warning'
-        );
-        // 记录跳过信息 (如果需要进一步分析)
-        // playbackAnalytics.recordSkip(song.id, song.source, quality);
         continue; // 跳过当前品质，尝试下一个
       }
 
@@ -405,7 +362,6 @@ export async function playSong(
       if (urlData.usedSource) {
         const sourceName = SOURCE_NAMES[urlData.usedSource] || urlData.usedSource;
         ui.showNotification(`已自动切换到 ${sourceName} 源播放`, 'success');
-        console.log(`✅ [自动解灰] 成功切换到 ${sourceName}`);
       }
 
       // 提示品质降级信息
@@ -427,37 +383,22 @@ export async function playSong(
       let finalUrl: string;
       if (shouldBypassProxy(urlData.url, successQuality)) {
         finalUrl = urlData.url.replace(/^http:/, 'https:'); // Ensure HTTPS even for direct
-        console.log('🚀 直连高音质源 (跳过代理):', finalUrl);
       } else {
         finalUrl = getProxiedUrl(urlData.url, song.source);
       }
-      audioPlayer.src = finalUrl;
 
-      console.log('🎵 播放URL:', {
-        original: urlData.url,
-        final: finalUrl,
-        source: song.source,
-        proxied: urlData.url !== finalUrl,
-      });
+      // 修复歌词同步：先加载歌词，再设置音频源并播放
+      const lyricsData = await api.getLyrics(song);
+      const lyrics = lyricsData.lyric ? await lyricsWorkerManager.parseLyric(lyricsData.lyric) : [];
+      currentLyrics = lyrics;
+      ui.updateLyrics(lyrics, 0);
+
+      audioPlayer.src = finalUrl;
       audioPlayer.load();
 
       // 添加到播放历史
       addToPlayHistory(song);
       playbackAnalytics.recordSuccess();
-
-      const lyricsData = await api.getLyrics(song);
-      console.log('🎵 [歌词] API返回数据:', {
-        hasLyric: !!lyricsData?.lyric,
-        length: lyricsData?.lyric?.length,
-      });
-
-      // 优化: 使用 Web Worker 解析歌词，避免阻塞主线程
-      const lyrics = lyricsData.lyric ? await lyricsWorkerManager.parseLyric(lyricsData.lyric) : [];
-      console.log('📝 [歌词] 解析结果:', { count: lyrics.length, sample: lyrics[0] });
-
-      currentLyrics = lyrics; // 保存当前歌词
-      ui.updateLyrics(lyrics, 0);
-      console.log('✅ [歌词] 已调用ui.updateLyrics');
 
       // 触发播放事件（用于 Wake Lock 和 Media Session）
       window.dispatchEvent(
@@ -518,8 +459,7 @@ export async function playSong(
           isPlaying = true;
           ui.updatePlayButton(true);
         }
-      } catch (error) {
-        console.error('播放失败:', error);
+      } catch {
         ui.showNotification('播放失败，请点击页面以允许自动播放', 'warning');
         // 修复: 确保状态正确更新
         isPlaying = false;
@@ -689,8 +629,7 @@ export function togglePlay(): void {
             navigator.mediaSession.playbackState = 'playing';
           }
         })
-        .catch((error) => {
-          console.error('播放失败:', error);
+        .catch(() => {
           isPlaying = false;
           ui.updatePlayButton(false);
           ui.showNotification('播放失败，请检查音频文件', 'error');
@@ -802,8 +741,7 @@ export function downloadLyricByData(song: Song | null): void {
         ui.showNotification(`该歌曲暂无歌词: ${song.name}`, 'warning');
       }
     })
-    .catch((error) => {
-      console.error('❌ [下载歌词] 下载失败:', error);
+    .catch(() => {
       ui.showNotification(`歌词下载失败: ${song.name}`, 'error');
     });
 }
@@ -819,14 +757,10 @@ export async function loadSavedPlaylists(): Promise<void> {
 
     // 新增: 从IndexedDB加载播放历史
     playHistorySongs = await indexedDB.getHistory(PLAYER_CONFIG.MAX_HISTORY_SIZE);
-    console.log(`✅ 从IndexedDB加载了 ${playHistorySongs.length} 条播放历史`);
 
     // 新增: 从IndexedDB加载收藏列表
     await loadFavoritesFromIndexedDB();
-
-    console.log('✅ 播放列表和历史加载成功');
-  } catch (error) {
-    console.error('❌ 加载播放列表失败:', error);
+  } catch {
     // 降级：使用空数据
     playlistStorage = new Map();
     playlistCounter = 0;
@@ -845,11 +779,10 @@ async function loadFavoritesFromIndexedDB(): Promise<void> {
       if (favPlaylist) {
         favPlaylist.songs = favorites;
         savePlaylistsToStorage();
-        console.log(`✅ 从IndexedDB加载了 ${favorites.length} 首收藏歌曲`);
       }
     }
-  } catch (error) {
-    console.error('❌ 从IndexedDB加载收藏列表失败:', error);
+  } catch {
+    // 静默处理错误
   }
 }
 
@@ -882,9 +815,6 @@ async function addToPlayHistory(song: Song): Promise<void> {
     if (playHistorySongs.length > PLAYER_CONFIG.MAX_HISTORY_SIZE) {
       playHistorySongs = playHistorySongs.slice(0, PLAYER_CONFIG.MAX_HISTORY_SIZE);
     }
-  } else {
-    console.error('❌ 播放历史保存失败');
-    ui.showNotification('播放历史保存失败', 'error');
   }
 }
 
@@ -903,8 +833,7 @@ function _exportPlayHistoryBackup(): void {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     ui.showNotification('播放历史备份已导出', 'success');
-  } catch (error) {
-    console.error('导出播放历史失败:', error);
+  } catch {
     ui.showNotification('导出备份失败', 'error');
   }
 }
@@ -925,8 +854,7 @@ export async function exportFavoritesBackup(): Promise<void> {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     ui.showNotification('收藏列表备份已导出', 'success');
-  } catch (error) {
-    console.error('导出收藏列表失败:', error);
+  } catch {
     ui.showNotification('导出备份失败', 'error');
   }
 }
@@ -1098,7 +1026,6 @@ function savePlaylistsToStorage(): void {
 
   const saved = safeSetItem(STORAGE_CONFIG.KEY_PLAYLISTS, playlistsData, {
     onQuotaExceeded: () => {
-      console.error('❌ localStorage空间不足，无法保存歌单');
       ui.showNotification('存储空间不足，歌单保存失败', 'error');
 
       // 通知用户导出备份
@@ -1121,7 +1048,7 @@ function savePlaylistsToStorage(): void {
   });
 
   if (!saved) {
-    console.error('❌ 歌单保存失败');
+    // 静默处理
   }
 }
 
@@ -1131,10 +1058,8 @@ function savePlaylistsToStorage(): void {
 export type { LyricLine } from './types.js';
 
 function _parseLyrics(lrc: string): LyricLine[] {
-  // 🔧 修复P2-8: 添加错误处理和默认歌词
   try {
     if (!lrc || !lrc.trim()) {
-      console.warn('⚠️ [parseLyrics] 歌词文本为空');
       return [{ time: 0, text: '暂无歌词' }];
     }
 
@@ -1170,9 +1095,7 @@ function _parseLyrics(lrc: string): LyricLine[] {
             result.push({ time: m.time, text });
           });
         }
-      } catch (lineError) {
-        // 单行解析失败不影响其他行
-        console.warn('⚠️ [parseLyrics] 解析单行失败:', line);
+      } catch {
         continue;
       }
     }
@@ -1182,13 +1105,11 @@ function _parseLyrics(lrc: string): LyricLine[] {
 
     // 如果解析后没有有效歌词，返回默认
     if (result.length === 0) {
-      console.warn('⚠️ [parseLyrics] 没有解析到有效歌词');
       return [{ time: 0, text: '纯音乐，请欣赏' }];
     }
 
     return result;
-  } catch (error) {
-    console.error('❌ [parseLyrics] 歌词解析失败:', error);
+  } catch {
     return [{ time: 0, text: '歌词加载失败' }];
   }
 }
@@ -1365,9 +1286,8 @@ export async function downloadMultipleSongs(songs: Song[]): Promise<void> {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
           }
-        } catch (error) {
+        } catch {
           // 忽略单个歌曲下载失败
-          console.warn('下载歌曲失败:', error);
         }
       })
     );
@@ -1415,27 +1335,17 @@ export function init(): void {
 // 添加数据迁移函数
 async function migrateDataToIndexedDB(): Promise<void> {
   try {
-    console.log('🔄 开始检查数据迁移...');
     const result = await indexedDB.migratePlayDataFromLocalStorage();
 
     if (result.historyMigrated > 0 || result.favoritesMigrated > 0) {
-      console.log('✅ 数据迁移完成:', {
-        历史记录: `${result.historyMigrated} 成功, ${result.historyFailed} 失败`,
-        收藏歌曲: `${result.favoritesMigrated} 成功, ${result.favoritesFailed} 失败`,
-      });
-
       ui.showNotification(
-        `数据已迁移到IndexedDB: ${result.historyMigrated}条历史, ${result.favoritesMigrated}首收藏`,
+        `数据已迁移: ${result.historyMigrated}条历史, ${result.favoritesMigrated}首收藏`,
         'success'
       );
-
-      // 重新加载数据以反映迁移结果
       await loadSavedPlaylists();
-    } else {
-      console.log('✅ 无需迁移数据');
     }
-  } catch (error) {
-    console.error('❌ 数据迁移失败:', error);
+  } catch {
+    // 静默处理迁移错误
   }
 }
 

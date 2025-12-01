@@ -1,4 +1,13 @@
 // 简化版音乐播放器 - 只保留核心功能
+
+// 禁用所有控制台输出
+const noop = () => {};
+console.log = noop;
+console.warn = noop;
+console.error = noop;
+console.info = noop;
+console.debug = noop;
+
 import '../css/style.css';
 
 import * as api from './api.js';
@@ -59,16 +68,10 @@ function registerEventListener(
  * 页面卸载时调用，防止内存泄漏
  */
 export function cleanup(): void {
-  console.log(`🧹 main.ts: 开始清理 ${registeredEventListeners.length} 个事件监听器...`);
-
   registeredEventListeners.forEach(({ target, type, listener, options }) => {
     target.removeEventListener(type, listener, options);
   });
-
-  // 清空数组
   registeredEventListeners.length = 0;
-
-  console.log('✅ main.ts: 所有事件监听器已清理');
 }
 
 // 防止重复初始化的全局标志
@@ -328,7 +331,6 @@ function handleKeyboardShortcuts(e: KeyboardEvent): void {
  * 处理搜索表单提交事件
  */
 function handleSearchFormSubmit(e: Event): void {
-  console.log('🔍 [表单submit] 事件触发');
   e.preventDefault();
   handleSearch();
 }
@@ -337,7 +339,6 @@ function handleSearchFormSubmit(e: Event): void {
  * 处理搜索按钮点击事件
  */
 function handleSearchButtonClick(e: Event): void {
-  console.log('🔍 [搜索按钮click] 事件触发');
   e.preventDefault();
   handleSearch();
 }
@@ -348,7 +349,6 @@ function handleSearchButtonClick(e: Event): void {
 function handleSearchInputKeypress(e: Event): void {
   const keyboardEvent = e as KeyboardEvent;
   if (keyboardEvent.key === 'Enter') {
-    console.log('🔍 [回车键] 事件触发');
     e.preventDefault();
     handleSearch();
   }
@@ -460,14 +460,11 @@ async function initializeApp(): Promise<void> {
     if (!testResult) {
       const result = await api.findWorkingAPI();
       if (result.success) {
-        console.log(`✅ API初始化成功: ${result.name}`);
         ui.showNotification(`已连接到 ${result.name}`, 'success');
       } else {
-        console.error('❌ 所有API均不可用');
         ui.showNotification('所有 API 均不可用，搜索功能可能受影响', 'warning');
       }
     } else {
-      console.log(`✅ 使用API: ${currentApi.name}`);
       ui.showNotification(`已连接到 ${currentApi.name}`, 'success');
     }
 
@@ -492,8 +489,7 @@ async function initializeApp(): Promise<void> {
         }
       }, 2000);
     }
-  } catch (error) {
-    console.error('❌ API初始化失败:', error);
+  } catch {
     ui.showNotification('API连接失败，将使用默认配置', 'warning');
   }
 
@@ -504,22 +500,8 @@ async function initializeApp(): Promise<void> {
   const searchInput = document.getElementById('searchInput') as HTMLInputElement;
   const searchForm = document.querySelector('.search-wrapper') as HTMLFormElement;
 
-  console.log('🔍 [搜索功能初始化] 元素检查:', {
-    searchBtn: searchBtn,
-    searchBtnExists: !!searchBtn,
-    searchInput: searchInput,
-    searchInputExists: !!searchInput,
-    searchForm: searchForm,
-    searchFormExists: !!searchForm,
-  });
-
-  if (!searchBtn) {
-    console.error('❌ 搜索按钮未找到！选择器: .search-btn');
-    console.error('❌ 当前页面所有按钮:', document.querySelectorAll('button'));
-  }
-
-  if (!searchInput) {
-    console.error('❌ 搜索输入框未找到！选择器: #searchInput');
+  if (!searchBtn || !searchInput) {
+    // 搜索元素缺失，静默处理
   }
 
   // 🔥 关键修复：使用命名函数绑定，支持自动清理
@@ -538,11 +520,6 @@ async function initializeApp(): Promise<void> {
     // 回车键搜索
     registerEventListener(searchInput, 'keypress', handleSearchInputKeypress);
     // console.log('✅ 回车键事件已绑定');
-  } else {
-    console.error('❌ 搜索功能初始化失败：缺少必要元素', {
-      searchBtn: !!searchBtn,
-      searchInput: !!searchInput,
-    });
   }
 
   // 优化：启用实时搜索防抖，提升用户体验
@@ -618,16 +595,11 @@ async function initializeApp(): Promise<void> {
         await loadDailyRecommendModule();
         if (dailyRecommendModule && dailyRecommendModule.loadDailyRecommendInSearch) {
           await dailyRecommendModule.loadDailyRecommendInSearch();
-        } else {
-          console.error('❌ 每日推荐模块或函数未找到');
         }
-      } catch (error) {
-        console.error('❌ 每日推荐加载失败:', error);
+      } catch {
+        // 静默处理
       }
     });
-    // console.log('✅ 每日推荐按钮事件已绑定');
-  } else {
-    console.error('❌ 每日推荐按钮未找到');
   }
 
   if (refreshRecommendBtn) {
@@ -636,16 +608,11 @@ async function initializeApp(): Promise<void> {
         await loadDailyRecommendModule();
         if (dailyRecommendModule && dailyRecommendModule.loadDailyRecommendInSearch) {
           await dailyRecommendModule.loadDailyRecommendInSearch(true);
-        } else {
-          console.error('❌ 每日推荐模块或函数未找到');
         }
-      } catch (error) {
-        console.error('❌ 刷新推荐失败:', error);
+      } catch {
+        // 静默处理
       }
     });
-    // console.log('✅ 刷新推荐按钮事件已绑定');
-  } else {
-    console.error('❌ 刷新推荐按钮未找到');
   }
 
   // 初始化播放列表弹窗
@@ -672,9 +639,8 @@ async function initNonCriticalModules(): Promise<void> {
   try {
     // 并行加载所有非关键模块
     await Promise.all([loadPlayStatsModule()]);
-    console.log('✅ 非关键模块加载完成');
-  } catch (error) {
-    console.error('❌ 非关键模块加载失败:', error);
+  } catch {
+    // 静默处理
   }
 }
 
@@ -683,23 +649,14 @@ async function loadArtistModule(): Promise<void> {
   if (moduleLoadStatus.artist && artistModule) return;
 
   try {
-    console.log('📦 加载歌手模块...');
-    // 显式解构导入
     const module = await import('./artist.js');
     artistModule = module;
-    
-    // 兼容命名导出和默认导出
-    const initFn = module.initArtist || (module.default && module.default.initArtist);
-    
+    const initFn = module.initArtist || ((module as any).default && (module as any).default.initArtist);
     if (typeof initFn === 'function') {
       initFn();
       moduleLoadStatus.artist = true;
-      console.log('✅ 歌手模块加载完成');
-    } else {
-      console.error('❌ 歌手模块未导出 initArtist 方法', module);
     }
-  } catch (error) {
-    console.error('❌ 歌手模块加载失败:', error);
+  } catch {
     moduleLoadStatus.artist = false;
     artistModule = null;
   }
@@ -710,23 +667,14 @@ async function loadPlaylistModule(): Promise<void> {
   if (moduleLoadStatus.playlist && playlistModule) return;
 
   try {
-    console.log('📦 加载歌单模块（含排行榜）...');
-    // 显式解构导入，避免模块对象解析问题
     const module = await import('./playlist.js');
     playlistModule = module;
-    
-    // 兼容命名导出和默认导出
-    const initFn = module.initPlaylist || (module.default && module.default.initPlaylist);
-    
+    const initFn = module.initPlaylist || ((module as any).default && (module as any).default.initPlaylist);
     if (typeof initFn === 'function') {
       initFn();
       moduleLoadStatus.playlist = true;
-      console.log('✅ 歌单模块加载完成');
-    } else {
-      console.error('❌ 歌单模块未导出 initPlaylist 方法', module);
     }
-  } catch (error) {
-    console.error('❌ 歌单模块加载失败:', error);
+  } catch {
     moduleLoadStatus.playlist = false;
     playlistModule = null;
   }
@@ -737,23 +685,14 @@ async function loadRadioModule(): Promise<void> {
   if (moduleLoadStatus.radio && radioModule) return;
 
   try {
-    console.log('📦 加载电台模块...');
-    // 显式解构导入
     const module = await import('./radio.js');
     radioModule = module;
-    
-    // 兼容命名导出和默认导出
-    const initFn = module.initRadio || (module.default && module.default.initRadio);
-    
+    const initFn = module.initRadio || ((module as any).default && (module as any).default.initRadio);
     if (typeof initFn === 'function') {
       initFn();
       moduleLoadStatus.radio = true;
-      console.log('✅ 电台模块加载完成');
-    } else {
-      console.error('❌ 电台模块未导出 initRadio 方法', module);
     }
-  } catch (error) {
-    console.error('❌ 电台模块加载失败:', error);
+  } catch {
     moduleLoadStatus.radio = false;
     radioModule = null;
   }
@@ -764,19 +703,13 @@ async function loadDailyRecommendModule(): Promise<void> {
   if (moduleLoadStatus.dailyRecommend && dailyRecommendModule) return;
 
   try {
-    console.log('📦 加载每日推荐模块...');
     const module = await import('./daily-recommend.js');
     dailyRecommendModule = module;
-    
     if (typeof module.initDailyRecommend === 'function') {
       module.initDailyRecommend();
       moduleLoadStatus.dailyRecommend = true;
-      console.log('✅ 每日推荐模块加载完成');
-    } else {
-      console.error('❌ 每日推荐模块未导出 initDailyRecommend 方法', module);
     }
-  } catch (error) {
-    console.error('❌ 每日推荐模块加载失败:', error);
+  } catch {
     moduleLoadStatus.dailyRecommend = false;
     dailyRecommendModule = null;
   }
@@ -787,13 +720,11 @@ async function loadPlayStatsModule(): Promise<void> {
   if (moduleLoadStatus.playStats) return;
 
   try {
-    console.log('📦 加载播放统计模块...');
     playStatsModule = await import('./play-stats.js');
     playStatsModule.initPlayStats();
     moduleLoadStatus.playStats = true;
-    console.log('✅ 播放统计模块加载完成');
-  } catch (error) {
-    console.error('❌ 播放统计模块加载失败:', error);
+  } catch {
+    // 静默处理
   }
 }
 
@@ -817,41 +748,29 @@ function _switchResultsContainer(activeContainer: 'search' | 'parse'): void {
   const searchResults = document.getElementById('searchResults');
   const parseResults = document.getElementById('parseResults');
 
-  if (!searchResults || !parseResults) {
-    console.error('❌ 结果容器元素缺失');
-    return;
-  }
+  if (!searchResults || !parseResults) return;
 
   if (activeContainer === 'search') {
-    // 确保在搜索结果标签页
     switchTab('search');
     searchResults.style.display = 'block';
-    console.log('✅ 已切换到搜索结果容器');
   } else {
-    // 确保在歌单标签页
     switchTab('playlist');
     parseResults.style.display = 'block';
-    console.log('✅ 已切换到解析结果容器');
   }
 }
 
 async function handleSearch(): Promise<void> {
-  console.log('🔍 [handleSearch] 函数被调用');
   const keywordInput = (document.getElementById('searchInput') as HTMLInputElement).value;
-  console.log('🔍 [handleSearch] 输入内容:', keywordInput);
-  // 修复：界面上没有 sourceSelect 元素，硬编码默认源
   const source = 'netease';
 
   // 输入验证
   const validation = validateSearchKeyword(keywordInput);
-  console.log('🔍 [handleSearch] 验证结果:', validation);
   if (!validation.valid) {
     ui.showNotification(validation.error || '输入无效', 'warning');
     return;
   }
 
   const keyword = validation.value;
-  console.log('🔍 [handleSearch] 开始搜索:', keyword);
 
   // 优化：搜索时自动跳转到搜索结果标签页（无论当前在哪个位置）
   switchTab('search');
@@ -889,8 +808,7 @@ async function handleSearch(): Promise<void> {
       ui.showError('未找到相关歌曲，请尝试其他关键词', 'searchResults');
       ui.showNotification('未找到相关歌曲', 'warning');
     }
-  } catch (error) {
-    console.error('搜索失败:', error);
+  } catch {
     ui.showError('搜索失败，请稍后重试', 'searchResults');
     ui.showNotification('搜索失败，请检查网络连接', 'error');
   }
@@ -1158,7 +1076,6 @@ window.addEventListener('beforeunload', () => {
     playStatsModule.cleanup();
   }
 
-  console.log('✅ 资源清理完成（包含所有子模块）');
 });
 
 // BUG-002修复: 添加页面隐藏时的清理（移动端切换应用）
@@ -1273,8 +1190,8 @@ async function initPerformanceOptimizations(): Promise<void> {
           imageLazyLoader.observe(img);
         }
       });
-    } catch (error) {
-      console.error('❌ 图片懒加载初始化失败:', error);
+    } catch {
+      // 静默处理
     }
   }
 
@@ -1285,8 +1202,8 @@ async function initPerformanceOptimizations(): Promise<void> {
       downloadProgressManager = new DownloadProgressManager();
       moduleLoadStatus.downloadProgress = true;
       // console.log('✅ 下载进度管理器已启用');
-    } catch (error) {
-      console.error('❌ 下载进度管理器初始化失败:', error);
+    } catch {
+      // 静默处理
     }
   }
 

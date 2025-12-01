@@ -490,9 +490,8 @@ class LRUCache {
   async warmup(preloadFn: () => Promise<void>): Promise<void> {
     try {
       await preloadFn();
-      console.log('✅ 缓存预热完成');
     } catch (error) {
-      console.warn('⚠️ 缓存预热失败:', error);
+      // 缓存预热失败，静默处理
     }
   }
 }
@@ -541,10 +540,7 @@ function startCacheCleanup(): void {
   if (cacheCleanupInterval !== null) return; // 防止重复启动
 
   cacheCleanupInterval = window.setInterval(() => {
-    const cleared = cache.clearExpired();
-    if (cleared > 0) {
-      console.log(`✨ 清理了 ${cleared} 个过期缓存项`);
-    }
+    cache.clearExpired();
   }, 60 * 1000); // 每分钟清理一次
 }
 
@@ -562,11 +558,9 @@ export { API_BASE, API_SOURCES };
 
 // 导出清理函数供外部调用
 export function cleanup(): void {
-  console.log('🧹 清理API模块资源...');
   stopCacheCleanup();
   cache.clear();
   requestDeduplicator.clear();
-  console.log('✅ API模块清理完成');
 }
 
 // 页面卸载时清理定时器
@@ -659,11 +653,6 @@ async function fetchWithRetry(
     try {
       const response = await executeRequest(controller.signal);
       clearTimeout(timeoutId);
-
-      // BUG-005修复: 成功后重置连续失败计数（如果有的话）
-      if (attempt > 0) {
-        console.log(`✅ 请求在第${attempt + 1}次尝试后成功`);
-      }
 
       return response;
     } catch (error) {
@@ -829,12 +818,10 @@ export async function switchToNextAPI(): Promise<boolean> {
       API_BASE = api.url;
       currentApiIndex = nextIndex;
       notifyApiChange();
-      console.log(`✅ 已切换到API: ${api.name}`);
       return true;
     }
   }
 
-  console.warn('⚠️ 没有可用的备用API');
   return false;
 }
 
@@ -979,16 +966,11 @@ export async function restorePreferredApi(): Promise<void> {
     if (savedIndex !== null) {
       const index = parseInt(savedIndex, 10);
       if (index >= 0 && index < API_SOURCES.length) {
-        const result = await switchToAPI(index);
-        if (result.success) {
-          console.log(`✅ 已恢复用户偏好的API: ${result.name}`);
-        } else {
-          console.warn(`⚠️ 无法恢复偏好API，使用默认API`);
-        }
+        await switchToAPI(index);
       }
     }
   } catch (error) {
-    console.warn('恢复API偏好设置失败:', error);
+    // 恢复API偏好设置失败，静默处理
   }
 }
 
@@ -1280,8 +1262,6 @@ async function matchSongInOtherSources(
     originalSong.duration || originalSong.dt || originalSong.time
   );
 
-  console.log(`🔍 [自动解灰] 尝试在其他平台搜索: ${searchKeyword} (时长: ${originalDuration}s)`);
-
   for (const source of fallbackSources) {
     try {
       // 1. 搜索
@@ -1320,8 +1300,6 @@ async function matchSongInOtherSources(
       });
 
       if (match) {
-        console.log(`✅ [自动解灰] 在 ${source} 找到匹配歌曲: ${match.name} - ${match.artist}`);
-
         // 3. 获取播放链接
         const urlRes = await getSongUrlFromApi({ ...match, source }, '320', gdApiUrl);
 
@@ -1334,7 +1312,7 @@ async function matchSongInOtherSources(
         }
       }
     } catch (error) {
-      console.warn(`⚠️ [自动解灰] ${source} 搜索失败:`, error);
+      // 搜索失败，继续尝试下一个源
     }
   }
 
@@ -1353,7 +1331,6 @@ export function invalidateSongCache(songId: string, source: string): void {
     // 注意：目前的 getSongUrl 实现其实并没有缓存 URL (因为 URL 有效期短)
     // 如果未来添加了 URL 缓存，这里需要处理
   });
-  console.log(`🧹 [缓存] 已尝试清理歌曲缓存: ${source}_${songId}`);
 }
 
 // 获取歌曲URL - 增强版：支持强制刷新和自动解灰
@@ -1362,8 +1339,6 @@ export async function getSongUrl(
   quality: string,
   forceRefresh: boolean = false
 ): Promise<{ url: string; br: string; error?: string; usedSource?: string }> {
-  console.log(`🎵 [播放获取] ${song.name} (ID: ${song.id}) [ForceRefresh: ${forceRefresh}]`);
-
   const errors: string[] = [];
 
   // 如果强制刷新，这里可以执行一些清理逻辑
@@ -1386,7 +1361,6 @@ export async function getSongUrl(
       const result = await getSongUrlFromApi(song, quality, apiSource.url);
 
       if (result.url) {
-        console.log(`✅ [播放获取] 成功从 ${apiSource.name} 获取`);
         return result;
       }
 
@@ -1401,7 +1375,6 @@ export async function getSongUrl(
 
   // 2. 自动解灰 (仅当原源是网易云且失败时)
   if (song.source === 'netease') {
-    console.log('⚠️ [播放获取] 原源失败，启动智能解灰程序...');
     const fallbackResult = await matchSongInOtherSources(song);
 
     if (fallbackResult) {
@@ -1413,7 +1386,6 @@ export async function getSongUrl(
     }
   }
 
-  console.error(`❌ [播放获取] 全部失败，歌曲: ${song.name}`);
   const combinedError =
     errors.length > 0 ? `尝试${errors.length}个API均失败 - ${errors[0]}` : '无法获取音乐链接';
 
@@ -1565,7 +1537,6 @@ export async function searchMusicAPI(
       if (songs.length === 0) {
         // P0-2优化: 如果当前源搜索结果为空，且不是网易云，尝试使用网易云作为后备
         if (source !== 'netease') {
-          console.log(`🔍 [搜索] ${source} 返回空，尝试使用网易云作为后备...`);
           try {
             // 递归调用，但指定源为网易云
             // 注意：为了避免无限递归，这里直接使用 'netease' 调用
@@ -1630,8 +1601,6 @@ export async function searchMusicAPI(
       // P0-1 修复: 如果主源搜索失败，自动切换到下一个可用源并重试
       // 仅当不是因为取消请求导致的错误时才重试
       if (error instanceof Error && error.name !== 'AbortError') {
-        console.warn(`⚠️ [搜索] 当前源 ${source} 失败，尝试切换源...`);
-        
         // 尝试切换到下一个API
         const switched = await switchToNextAPI();
         if (switched) {
@@ -2776,7 +2745,6 @@ export async function getHotPlaylists(
       case 'meting':
       default:
         // 其他API不支持此功能，使用内置推荐歌单作为降级方案
-        console.warn('当前API不支持热门歌单功能，使用内置推荐');
         return getBuiltInPlaylists(limit, offset);
     }
 
@@ -2854,7 +2822,6 @@ export async function getArtistList(
       case 'meting':
       default:
         // 其他API不支持此功能，使用内置推荐歌手作为降级方案
-        console.warn('当前API不支持歌手分类功能，使用内置推荐');
         return getBuiltInArtists(type, area, initial, limit, offset);
     }
 
@@ -2922,7 +2889,6 @@ export async function getArtistTopSongs(artistId: string): Promise<{
       case 'meting':
       default:
         // 其他API不支持此功能，尝试通过搜索歌手名获取歌曲
-        console.warn('当前API不支持歌手热门歌曲功能，尝试搜索降级');
         return getArtistSongsBySearch(artistId);
     }
 
@@ -3147,19 +3113,15 @@ export function getApiStats(): {
 
 // 缓存预热函数 - 应用启动时调用
 export async function warmupCache(): Promise<void> {
-  console.log('🔥 开始缓存预热...');
-
   await cache.warmup(async () => {
     try {
       // 预加载热门歌单（前10个）
-      const hotPlaylists = await getBuiltInPlaylists(10, 0);
-      console.log(`✅ 预加载了 ${hotPlaylists.playlists.length} 个热门歌单`);
+      await getBuiltInPlaylists(10, 0);
 
       // 预加载飙升榜（前20首）
-      const topSongs = await getTopSongs('hot', 'netease', 20);
-      console.log(`✅ 预加载了 ${topSongs.length} 首热门歌曲`);
+      await getTopSongs('hot', 'netease', 20);
     } catch (error) {
-      console.warn('⚠️ 部分预热数据加载失败:', error);
+      // 部分预热数据加载失败，静默处理
     }
   });
 }
@@ -3376,8 +3338,7 @@ async function getArtistSongsBySearch(artistId: string): Promise<{
   };
   songs: Song[];
 }> {
-  // 由于没有歌手名，无法搜索，返回提示信息
-  console.warn(`当前API不支持获取歌手(${artistId})的热门歌曲，请切换到NCM API`);
+  // 由于没有歌手名，无法搜索，返回空结果
   return {
     artist: {
       id: artistId,
@@ -3404,7 +3365,6 @@ export async function getDJCategories(): Promise<Array<{
   try {
     const apiFormat = detectApiFormat(API_BASE);
     if (apiFormat.format !== 'ncm' && apiFormat.format !== 'clawcloud') {
-      console.warn('当前API不支持电台分类');
       return getBuiltInDJCategories();
     }
 
