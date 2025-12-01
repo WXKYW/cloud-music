@@ -158,6 +158,7 @@ function renderArtistList(artists: any[]): void {
     return;
   }
 
+  // 老王修复：改为横向卡片布局，参照歌单和电台卡片样式
   grid.innerHTML = artists
     .map(
       (artist) => `
@@ -169,8 +170,13 @@ function renderArtistList(artists: any[]): void {
              onerror="this.src='${DEFAULT_AVATAR}'">
         <div class="artist-overlay" data-name="${extractPureArtistName(artist.name)}"><i class="fas fa-play"></i></div>
       </div>
-      <div class="artist-name">${extractPureArtistName(artist.name)}</div>
-      ${artist.musicSize ? `<div class="artist-count">${artist.musicSize}首歌曲</div>` : ''}
+      <div class="artist-info">
+        <div class="artist-name">${extractPureArtistName(artist.name)}</div>
+        ${artist.musicSize ? `<div class="artist-stats"><span>${artist.musicSize}首歌曲</span></div>` : ''}
+      </div>
+      <div class="artist-action">
+        <button class="view-songs-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
     </div>
   `
     )

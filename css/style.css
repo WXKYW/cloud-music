@@ -1522,12 +1522,14 @@ body {
   line-height: 1.6;
   /* 统一从下到上的滚动淡入淡出效果 */
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  color: rgba(255, 255, 255, 0.7);
+  /* 老王修复：调亮歌词文字颜色，从0.7提高到0.85 */
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   height: 26px;
-  opacity: 0.8;
+  /* 老王修复：调亮歌词透明度，从0.8提高到0.9 */
+  opacity: 0.9;
   transform: translateY(0) scale(0.95);
   will-change: opacity, transform, color, font-size;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -1553,8 +1555,10 @@ body {
 /* 上一句歌词 - 向上滚动淡出 */
 .lyrics-container-inline .lyric-line.lyric-prev {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-  opacity: 0.7;
+  /* 老王修复：调亮上一句歌词颜色，从0.55提高到0.75 */
+  color: rgba(255, 255, 255, 0.75);
+  /* 老王修复：调亮透明度，从0.7提高到0.85 */
+  opacity: 0.85;
   transform: translateY(-6px) scale(0.92);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   animation: scrollUpFadeOut 0.5s ease-out;
@@ -1563,8 +1567,10 @@ body {
 /* 下一句歌词 - 从下方滚动进入 */
 .lyrics-container-inline .lyric-line.lyric-next {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
-  opacity: 0.7;
+  /* 老王修复：调亮下一句歌词颜色，从0.55提高到0.75 */
+  color: rgba(255, 255, 255, 0.75);
+  /* 老王修复：调亮透明度，从0.7提高到0.85 */
+  opacity: 0.85;
   transform: translateY(6px) scale(0.92);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   animation: scrollUpFadeIn 0.5s ease-out;
@@ -4885,10 +4891,10 @@ body {
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
-/* 歌手网格 */
+/* 歌手网格 - 老王修复：改为响应式2列布局，与歌单和电台一致 */
 .artist-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-md);
   padding: var(--spacing-sm);
   overflow-x: hidden;
@@ -6216,11 +6222,12 @@ body {
   background: var(--primary-color);
 }
 
+/* 老王修复：统一歌手网格为响应式2列布局 */
 .artist-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding: 10px 0;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
   overflow-x: hidden;
 }
 

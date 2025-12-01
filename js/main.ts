@@ -783,8 +783,8 @@ async function handleSearch(): Promise<void> {
   ui.showLoading('searchResults');
 
   try {
-    // 老王优化：先尝试主API搜索
-    const songs = await api.searchMusicAPI(keyword, source);
+    // 老王优化：先尝试主API搜索，扩大搜索结果数量到200首
+    const songs = await api.searchMusicAPI(keyword, source, 200);
 
     if (songs.length > 0) {
       ui.displaySearchResults(songs, 'searchResults', songs);

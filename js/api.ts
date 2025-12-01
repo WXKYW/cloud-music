@@ -2199,7 +2199,8 @@ export async function getArtistInfo(
         result.description = data.artist.briefDesc || '';
       }
       if (data && data.hotSongs && Array.isArray(data.hotSongs)) {
-        result.songs = data.hotSongs.slice(0, 20); // 限制前20首热门歌曲
+        // 老王修复：扩展歌曲数量上限，从20首增加到50首
+        result.songs = data.hotSongs.slice(0, 50);
       }
     } else {
       // 其他API格式处理
