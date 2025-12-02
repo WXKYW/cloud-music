@@ -55,6 +55,20 @@
   --font-lg: 18px;
   --font-xl: 20px;
   --font-2xl: 24px;
+
+  /* 移动端布局变量 - 老王统一管理这些SB尺寸 */
+  --mobile-navbar-height: 100px;
+  --mobile-indicator-height: 60px;
+  --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --z-index-bg: -2;
+  --z-index-overlay: -1;
+  --z-index-content: 1;
+  --z-index-navbar: 100;
+  --z-index-indicator: 120;
+  --z-index-panel: 200;
+  --z-index-modal: 1000;
+  --z-index-toast: 1100;
+  --z-index-top: 2000;
 }
 
 /* ========== 亮色主题 ========== */
@@ -172,7 +186,7 @@ body {
   padding: 15px 0;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-index-navbar);
 }
 
 .nav-container {
@@ -1238,7 +1252,7 @@ body {
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
-  z-index: 1000;
+  z-index: var(--z-index-modal);
   align-items: center;
   justify-content: center;
 }
@@ -1638,15 +1652,16 @@ body {
 
 /* 移动端 - 三栏横向滑动 */
 @media (max-width: 768px) {
-  /* 导航栏固定 */
+  /* 导航栏固定 - 老王优化：使用CSS变量 */
   .navbar {
     position: fixed;
     width: 100%;
     padding: 10px 0;
-    z-index: 100;
-    max-width: 100vw; /* 修复：确保导航栏不超出视口 */
+    z-index: var(--z-index-navbar);
+    max-width: 100vw;
     left: 0;
     right: 0;
+    top: 0;
   }
 
   .nav-container {
@@ -1703,14 +1718,14 @@ body {
     flex-shrink: 0;
   }
 
-  /* 主容器 - 横向滚动 */
+  /* 主容器 - 横向滚动 - 老王优化：使用CSS变量动态计算 */
   .main-container {
     display: flex;
     flex-direction: row;
     gap: 0;
     padding: 0;
-    margin-top: 110px; /* 减小顶部间距 */
-    min-height: calc(100vh - 110px);
+    margin-top: var(--mobile-navbar-height);
+    min-height: calc(100vh - var(--mobile-navbar-height));
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -1729,29 +1744,29 @@ body {
     display: none;
   }
 
-  /* 三个栏位 - 固定宽度，内部垂直滚动 */
+  /* 三个栏位 - 老王优化：使用CSS变量动态计算高度和底部padding */
   .content-section,
   .player-section,
   .stats-section-sidebar {
     flex: 0 0 100vw;
     width: 100vw;
     max-width: 100vw;
-    min-width: 100vw; /* 确保最小宽度 */
-    height: calc(100vh - 140px);
-    max-height: calc(100vh - 140px);
+    min-width: 100vw;
+    height: calc(100vh - var(--mobile-navbar-height) - var(--mobile-indicator-height));
+    max-height: calc(100vh - var(--mobile-navbar-height) - var(--mobile-indicator-height));
     overflow-y: auto;
-    overflow-x: hidden; /* 严格禁止横向滚动 */
+    overflow-x: hidden;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     border-radius: 0;
     padding: 12px;
-    padding-bottom: 80px; /* 优化：增加底部内边距，避开页面指示器 */
+    padding-bottom: calc(var(--mobile-indicator-height) + var(--mobile-safe-area-bottom) + 20px);
     margin: 0;
-    overscroll-behavior-y: auto; /* 允许垂直滚动 */
-    overscroll-behavior-x: none; /* 禁止横向过度滚动 */
+    overscroll-behavior-y: auto;
+    overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;
-    box-sizing: border-box; /* 确保padding不影响宽度 */
-    touch-action: pan-y; /* 优化：明确告知浏览器处理垂直手势，减少横向冲突 */
+    box-sizing: border-box;
+    touch-action: pan-y;
   }
 
   .player-section {
@@ -1942,20 +1957,20 @@ body {
     height: 140px;
   }
 
-  /* 页面指示器显示和优化 */
+  /* 页面指示器显示和优化 - 老王优化：使用CSS变量 */
   .page-indicators {
     display: flex;
     position: fixed;
-    bottom: 20px;
+    bottom: calc(20px + var(--mobile-safe-area-bottom));
     left: 50%;
     transform: translateX(-50%);
     gap: 10px;
-    z-index: 150; /* 修复：提高z-index,确保在搜索框之上 */
+    z-index: var(--z-index-indicator);
     padding: 10px 20px;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 20px;
     backdrop-filter: blur(10px);
-    pointer-events: auto; /* 修复：确保可点击 */
+    pointer-events: auto;
   }
 
   .page-indicator {
@@ -1975,10 +1990,9 @@ body {
     box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
   }
 
-  /* 页脚适配 */
+  /* 页脚适配 - 老王优化：移动端隐藏footer，因为三栏布局下没有位置放 */
   .footer {
-    margin-top: 0;
-    padding: 20px 0;
+    display: none;
   }
 
   /* 双语歌词移动端优化 */
@@ -2260,7 +2274,7 @@ body {
   }
 }
 
-/* 移动端页面指示器 */
+/* 移动端页面指示器 - 老王优化：使用CSS变量统一z-index */
 .page-indicators {
   display: none;
   justify-content: center;
@@ -2270,7 +2284,7 @@ body {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 90;
+  z-index: var(--z-index-indicator);
 }
 
 .page-indicator {
@@ -2364,7 +2378,7 @@ body {
   background: rgba(20, 20, 20, 0.98);
   backdrop-filter: blur(30px);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 999;
+  z-index: var(--z-index-panel);
   transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -3356,7 +3370,7 @@ body {
   background: rgba(20, 20, 20, 0.98);
   backdrop-filter: blur(30px);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 998;
+  z-index: var(--z-index-panel);
   transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -3593,7 +3607,7 @@ body {
   background: rgba(20, 20, 20, 0.98);
   backdrop-filter: blur(30px);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 997;
+  z-index: var(--z-index-panel);
   transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -3942,7 +3956,7 @@ body {
   right: 20px;
   width: 350px;
   max-height: 400px;
-  z-index: 1001;
+  z-index: var(--z-index-toast);
   display: none;
   flex-direction: column;
   pointer-events: auto;
@@ -5711,7 +5725,7 @@ body {
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
-  z-index: 10000;
+  z-index: var(--z-index-top);
   justify-content: center;
   align-items: center;
   animation: fadeIn 0.3s ease;
@@ -6831,7 +6845,7 @@ body {
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
-  z-index: 2000;
+  z-index: var(--z-index-top);
   align-items: center;
   justify-content: center;
 }
