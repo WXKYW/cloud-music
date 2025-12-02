@@ -310,7 +310,7 @@ export async function playSong(
   updatePlayerFavoriteButton();
 
   try {
-    ui.showNotification('正在加载音乐...', 'info');
+    // 老王优化：移除 "正在加载音乐..." 提示，让界面更简洁
 
     // 修改：从新的音质切换按钮获取当前音质
     const preferredQuality = getCurrentQuality();

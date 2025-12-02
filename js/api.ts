@@ -1158,14 +1158,8 @@ async function getSongUrlFromApi(
 
     const response = await fetchWithRetry(url);
 
-    // 处理401未授权错误 - 使用网易云直链
-    if (response.status === 401 && song.source === 'netease') {
-      const directUrl = `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`;
-      // 优化: 验证直链是否有效
-      const isValid = await validateUrl(directUrl);
-      if (isValid) {
-        return { url: directUrl, br: quality };
-      }
+    // 处理401未授权错误 - 直接返回错误，不使用直链（CORS限制）
+    if (response.status === 401) {
       return { url: '', br: '', error: '无法获取音乐链接（版权或地区限制）' };
     }
 
@@ -1192,43 +1186,18 @@ async function getSongUrlFromApi(
       if (song.source === 'netease') {
         const isValid = await validateUrl(songUrl);
         if (!isValid) {
-          // URL无效，尝试使用直链
-          const directUrl = `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`;
-          const directIsValid = await validateUrl(directUrl);
-          if (directIsValid) {
-            return { url: directUrl, br: quality };
-          }
+          // URL无效，直接返回错误（不使用直链，CORS限制）
           return { url: '', br: '', error: '音乐链接已失效（版权或地区限制）' };
         }
       }
       return { url: songUrl, br: quality };
-    } else if (song.source === 'netease') {
-      // API返回空URL时使用网易云直链
-      const directUrl = `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`;
-      const isValid = await validateUrl(directUrl);
-      if (isValid) {
-        return { url: directUrl, br: quality };
-      }
-      return { url: '', br: '', error: '无法获取音乐链接（版权或地区限制）' };
     }
 
-    return { url: '', br: '', error: `无法获取音乐链接` };
+    // API返回空URL，直接返回错误
+    return { url: '', br: '', error: '无法获取音乐链接（版权或地区限制）' };
   } catch (error) {
-    // 请求失败时尝试网易云直链
-    if (song.source === 'netease') {
-      try {
-        const directUrl = `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`;
-        const isValid = await validateUrl(directUrl);
-        if (isValid) {
-          return { url: directUrl, br: quality };
-        }
-      } catch (validateError) {
-        console.warn('验证网易云直链失败:', validateError);
-      }
-    }
-
+    // 请求失败，直接返回错误（不使用直链，CORS限制）
     const errorMessage = error instanceof ApiError ? `API请求失败: ${error.message}` : `请求失败`;
-
     console.error(`从 ${apiUrl} 获取歌曲URL失败:`, errorMessage);
     return { url: '', br: '', error: errorMessage };
   }
