@@ -131,7 +131,6 @@ async function loadArtists(): Promise<void> {
     state.artists = artists;
     renderArtistList(artists);
   } catch (error) {
-    console.error('加载歌手列表失败:', error);
     if (grid)
       grid.innerHTML =
         '<div class="error"><i class="fas fa-exclamation-triangle"></i><div>加载失败，请重试</div></div>';
@@ -235,7 +234,6 @@ async function loadArtistDetail(id: string, name: string): Promise<void> {
     // 渲染MV
     renderMVs(mvs);
   } catch (error) {
-    console.error('加载歌手详情失败:', error);
     ui.showNotification('获取歌手信息失败', 'error');
   }
 }

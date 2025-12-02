@@ -69,7 +69,6 @@ export function needsProxy(url: string, source?: string): boolean {
 
     return false;
   } catch (error) {
-    console.error('解析URL失败:', url, error);
     return false;
   }
 }
@@ -126,7 +125,6 @@ export function isUrlSafe(url: string): boolean {
 
     // 只允许HTTP和HTTPS协议
     if (!['http:', 'https:'].includes(urlObj.protocol)) {
-      console.warn('不安全的协议:', urlObj.protocol);
       return false;
     }
 
@@ -144,14 +142,12 @@ export function isUrlSafe(url: string): boolean {
 
     for (const pattern of privateRanges) {
       if (pattern.test(hostname)) {
-        console.warn('检测到内网地址:', hostname);
         return false;
       }
     }
 
     return true;
   } catch (error) {
-    console.error('URL验证失败:', url, error);
     return false;
   }
 }

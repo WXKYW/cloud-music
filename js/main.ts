@@ -409,7 +409,7 @@ async function initializeApp(): Promise<void> {
     await storageAdapter.initialize();
     // console.log('✅ 存储系统初始化成功');
   } catch (error) {
-    console.error('❌ 存储系统初始化失败:', error);
+    // Storage initialization failed
   }
 
   ui.init();
@@ -1282,7 +1282,7 @@ function initIOSAudioUnlock(): void {
             // console.log('✅ iOS音频已解锁');
           })
           .catch((error: Error) => {
-            console.warn('⚠️ iOS音频解锁失败:', error.message);
+            // iOS audio unlock failed
           });
       }
     }

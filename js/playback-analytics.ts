@@ -45,7 +45,7 @@ class PlaybackAnalytics {
 
       this.stats = storage.get<PlaybackStats>(STATS_KEY, { total: 0, success: 0, failures: 0 });
     } catch (e) {
-      console.error('Failed to load playback analytics:', e);
+      // Failed to load analytics
     }
   }
 
@@ -55,7 +55,7 @@ class PlaybackAnalytics {
       storage.set(STORAGE_KEY, obj);
       storage.set(STATS_KEY, this.stats);
     } catch (e) {
-      console.error('Failed to save playback analytics:', e);
+      // Failed to save analytics
     }
   }
 

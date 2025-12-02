@@ -233,8 +233,6 @@ async function loadPlaylistData(): Promise<void> {
     // 渲染热门歌单
     renderPlaylistGrid('hotPlaylistGrid', hot.playlists);
   } catch (error) {
-    console.error('加载歌单数据失败:', error);
-
     // 失败时显示错误
     const grids = ['highQualityGrid', 'recommendGrid', 'hotPlaylistGrid'];
     grids.forEach((gridId) => {
@@ -401,7 +399,6 @@ async function loadCategoryPlaylists(category: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('加载分类歌单失败:', error);
     const grid = document.getElementById('categoryPlaylistGrid');
     if (grid) {
       grid.innerHTML = `
@@ -466,11 +463,8 @@ async function loadPlaylistDetail(playlistId: string, playlistName?: string): Pr
     displaySearchResults(songs, 'playlistSongs', songs);
     showNotification(`成功加载《${playlistName || result.name}》，共 ${songs.length} 首歌曲`, 'success');
   } catch (error) {
-    console.error('加载歌单详情失败:', error);
-
     // 尝试自动切换 API 源重试
     if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn('尝试切换 API 源重试加载歌单...');
       const switched = await api.switchToNextAPI();
       if (switched) {
         try {
@@ -497,7 +491,7 @@ async function loadPlaylistDetail(playlistId: string, playlistName?: string): Pr
             return;
           }
         } catch (retryError) {
-          console.error('重试加载歌单失败:', retryError);
+          // Retry failed
         }
       }
     }

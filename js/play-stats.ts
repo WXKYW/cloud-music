@@ -97,7 +97,7 @@ function loadStats(): void {
       };
     }
   } catch (error) {
-    console.warn('加载播放统计失败，使用默认值', error);
+    // Use default stats
   }
 }
 
@@ -105,7 +105,7 @@ function saveStats(): void {
   try {
     localStorage.setItem(STATS_KEY, JSON.stringify(currentStats));
   } catch (error) {
-    console.warn('保存播放统计失败', error);
+    // Failed to save stats
   }
 }
 
@@ -225,7 +225,7 @@ function updateSidebarFavorites(): void {
         if (coverElement) coverElement.src = coverUrl;
       }
     } catch (error) {
-      console.warn(`加载收藏歌曲封面失败: ${song.name}`, error);
+      // Failed to load cover
     }
   });
 
@@ -289,7 +289,7 @@ function updateSidebarHistory(): void {
         if (coverElement) coverElement.src = coverUrl;
       }
     } catch (error) {
-      console.warn(`加载历史歌曲封面失败: ${song.name}`, error);
+      // Failed to load cover
     }
   });
 

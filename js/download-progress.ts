@@ -143,7 +143,6 @@ export class DownloadProgressManager {
       // 3秒后自动移除已完成的任务
       setTimeout(() => this.removeTask(taskId), 3000);
     } catch (error) {
-      console.error('下载失败:', error);
       task.status = 'failed';
       this.updateTaskStatus(taskId, 'failed');
 

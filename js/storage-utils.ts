@@ -26,7 +26,6 @@ export function safeSetItem(
       attempts++;
 
       if (error.name === 'QuotaExceededError' || error.code === 22) {
-        console.warn(`localStorage 配额超限 (尝试 ${attempts}/${maxRetries})`);
 
         if (attempts < maxRetries) {
           // 尝试清理策略
@@ -43,7 +42,6 @@ export function safeSetItem(
           return false;
         }
       } else {
-        console.error('localStorage 保存失败:', error);
         return false;
       }
     }
@@ -64,7 +62,6 @@ export function safeGetItem<T = any>(key: string, defaultValue: T): T {
     }
     return JSON.parse(item) as T;
   } catch (error) {
-    console.error(`读取 localStorage 键 "${key}" 失败:`, error);
     return defaultValue;
   }
 }
@@ -77,7 +74,6 @@ export function safeRemoveItem(key: string): boolean {
     localStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error(`删除 localStorage 键 "${key}" 失败:`, error);
     return false;
   }
 }
@@ -163,7 +159,6 @@ function progressiveCleanupHistory(excludeKey: string): boolean {
 
     return false;
   } catch (error) {
-    console.error('清理播放历史失败:', error);
     return false;
   }
 }
@@ -199,7 +194,7 @@ function compressLargestItem(excludeKey: string): boolean {
         }
       }
     } catch (error) {
-      console.error('压缩失败:', error);
+      // Compression failed
     }
   }
 
@@ -300,12 +295,11 @@ export function importData(jsonString: string): boolean {
       try {
         localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
       } catch (error) {
-        console.error(`导入键 "${key}" 失败:`, error);
+        // Import failed for this key
       }
     });
     return true;
   } catch (error) {
-    console.error('导入数据失败:', error);
     return false;
   }
 }

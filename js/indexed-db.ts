@@ -30,7 +30,6 @@ class IndexedDBStorage {
     this.initPromise = new Promise((resolve) => {
       // 检查浏览器是否支持 IndexedDB
       if (!window.indexedDB) {
-        console.warn('IndexedDB 不可用，回退到 localStorage');
         this.fallbackToLocalStorage = true;
         resolve();
         return;
@@ -39,7 +38,6 @@ class IndexedDBStorage {
       const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('IndexedDB 打开失败，回退到 localStorage', request.error);
         this.fallbackToLocalStorage = true;
         resolve();
       };
@@ -113,7 +111,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('IndexedDB 读取失败:', request.error);
         resolve(null);
       };
     });
@@ -131,7 +128,6 @@ class IndexedDBStorage {
         localStorage.setItem(key, JSON.stringify(value));
         return true;
       } catch (error) {
-        console.error('localStorage 写入失败:', error);
         return false;
       }
     }
@@ -158,7 +154,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('IndexedDB 写入失败:', request.error);
         resolve(false);
       };
     });
@@ -176,7 +171,6 @@ class IndexedDBStorage {
         localStorage.removeItem(key);
         return true;
       } catch (error) {
-        console.error('localStorage 删除失败:', error);
         return false;
       }
     }
@@ -196,7 +190,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('IndexedDB 删除失败:', request.error);
         resolve(false);
       };
     });
@@ -214,7 +207,6 @@ class IndexedDBStorage {
         localStorage.clear();
         return true;
       } catch (error) {
-        console.error('localStorage 清空失败:', error);
         return false;
       }
     }
@@ -234,7 +226,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('IndexedDB 清空失败:', request.error);
         resolve(false);
       };
     });
@@ -266,7 +257,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('IndexedDB 获取键失败:', request.error);
         resolve([]);
       };
     });
@@ -311,7 +301,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('IndexedDB 获取大小失败:', request.error);
         resolve(0);
       };
     });
@@ -385,7 +374,6 @@ class IndexedDBStorage {
         });
         return true;
       } catch (error) {
-        console.error('localStorage 批量写入失败:', error);
         return false;
       }
     }
@@ -410,7 +398,6 @@ class IndexedDBStorage {
       };
 
       transaction.onerror = () => {
-        console.error('IndexedDB 批量写入失败:', transaction.error);
         resolve(false);
       };
     });
@@ -439,7 +426,6 @@ class IndexedDBStorage {
             items.set(key, JSON.parse(value));
           }
         } catch (error) {
-          console.warn(`迁移键 ${key} 失败:`, error);
           stats.failed++;
         }
       }
@@ -499,7 +485,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('添加播放历史失败:', request.error);
         resolve(false);
       };
     });
@@ -541,7 +526,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('获取播放历史失败:', request.error);
         resolve([]);
       };
     });
@@ -572,7 +556,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('清空播放历史失败:', request.error);
         resolve(false);
       };
     });
@@ -612,7 +595,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('从播放历史删除失败:', request.error);
         resolve(false);
       };
     });
@@ -661,7 +643,6 @@ class IndexedDBStorage {
         if (request.error?.name === 'ConstraintError') {
           resolve(true);
         } else {
-          console.error('添加收藏失败:', request.error);
           resolve(false);
         }
       };
@@ -703,7 +684,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('获取收藏列表失败:', request.error);
         resolve([]);
       };
     });
@@ -743,7 +723,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('从收藏删除失败:', request.error);
         resolve(false);
       };
     });
@@ -776,7 +755,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('检查收藏状态失败:', request.error);
         resolve(false);
       };
     });
@@ -807,7 +785,6 @@ class IndexedDBStorage {
       };
 
       request.onerror = () => {
-        console.error('清空收藏列表失败:', request.error);
         resolve(false);
       };
     });
@@ -858,7 +835,6 @@ class IndexedDBStorage {
             }
           }
         } catch (error) {
-          console.error('解析播放历史数据失败:', error);
           result.historyFailed = 1;
         }
       }
@@ -887,12 +863,11 @@ class IndexedDBStorage {
             }
           }
         } catch (error) {
-          console.error('解析收藏列表数据失败:', error);
           result.favoritesFailed = 1;
         }
       }
     } catch (error) {
-      console.error('迁移播放数据失败:', error);
+      // Migration failed silently
     }
 
     return result;

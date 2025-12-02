@@ -37,7 +37,7 @@ export class ThemeManager {
         return saved as Theme;
       }
     } catch (error) {
-      console.error('加载主题设置失败:', error);
+      // Silent fail
     }
     return 'dark'; // 默认暗色主题
   }
@@ -49,7 +49,7 @@ export class ThemeManager {
     try {
       localStorage.setItem(this.STORAGE_KEY, theme);
     } catch (error) {
-      console.error('保存主题设置失败:', error);
+      // Silent fail
     }
   }
 
@@ -111,7 +111,6 @@ export class ThemeManager {
    */
   public setTheme(theme: Theme): void {
     if (!['light', 'dark', 'auto'].includes(theme)) {
-      console.error('无效的主题:', theme);
       return;
     }
 

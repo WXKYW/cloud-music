@@ -118,7 +118,7 @@ class PerformanceMonitor {
       observer.observe({ entryTypes: ['resource'] });
       this.observers.push(observer);
     } catch (error) {
-      console.warn('⚠️ PerformanceObserver 不支持:', error);
+      // PerformanceObserver not supported
     }
   }
 
@@ -154,7 +154,6 @@ class PerformanceMonitor {
       this.metrics.customMetrics.set(name, duration);
       return duration;
     } catch (error) {
-      console.warn(`⚠️ 性能测量失败 (${name}):`, error);
       return 0;
     }
   }

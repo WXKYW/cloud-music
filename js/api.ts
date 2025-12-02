@@ -669,19 +669,15 @@ async function fetchWithRetry(
       if (!shouldRetry) {
         // 记录最终失败
         if (isLastAttempt) {
-          console.error(`❌ 请求失败，已重试${attempt}次: ${lastError.message}`);
+          // 请求失败，已重试
         } else {
-          console.error(`❌ 请求失败（不可重试）: ${lastError.message}`);
+          // 请求失败（不可重试）
         }
         throw lastError;
       }
 
       // 继续重试
       const delay = getRetryDelay(attempt);
-      console.warn(
-        `⚠️ ${lastError.type}错误 (HTTP ${lastError.statusCode || 'N/A'}), ` +
-          `${delay}ms后进行第${attempt + 2}/${maxRetries + 1}次尝试...`
-      );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -750,8 +746,7 @@ export class ApiErrorHandler {
   // 记录错误日志
   static logError(error: unknown, context: string): void {
     const timestamp = new Date().toISOString();
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[${timestamp}] [${context}] ${errorMsg}`, error);
+    // 静默处理错误
   }
 }
 
@@ -849,7 +844,7 @@ export async function switchToAPI(
     try {
       localStorage.setItem('preferredApiIndex', String(index));
     } catch (error) {
-      console.warn('无法保存API偏好设置:', error);
+      // 无法保存API偏好设置
     }
 
     // 触发变更回调
@@ -887,7 +882,7 @@ function notifyApiChange(): void {
     try {
       callback();
     } catch (error) {
-      console.error('API变更回调执行失败:', error);
+      // API变更回调执行失败
     }
   });
 }
@@ -1079,7 +1074,7 @@ export async function getAlbumCoverUrl(song: Song, size?: number): Promise<strin
 
     return DEFAULT_COVER;
   } catch (error) {
-    console.warn('获取专辑封面失败:', error);
+    // 获取专辑封面失败
 
     // 如果获取失败且不是300尺寸，尝试300尺寸
     if (size !== 300) {
@@ -1111,7 +1106,6 @@ async function validateUrl(url: string): Promise<boolean> {
     return response.ok || response.status === 206 || response.status === 416;
   } catch (error) {
     // 网络错误或超时，认为URL无效
-    console.warn('URL验证失败:', url, error);
     return false;
   }
 }
@@ -1198,7 +1192,6 @@ async function getSongUrlFromApi(
   } catch (error) {
     // 请求失败，直接返回错误（不使用直链，CORS限制）
     const errorMessage = error instanceof ApiError ? `API请求失败: ${error.message}` : `请求失败`;
-    console.error(`从 ${apiUrl} 获取歌曲URL失败:`, errorMessage);
     return { url: '', br: '', error: errorMessage };
   }
 }
@@ -1436,7 +1429,6 @@ export async function getLyrics(song: Song): Promise<{ lyric: string }> {
 
     return lyricData;
   } catch (error) {
-    console.warn('获取歌词失败:', error);
     return { lyric: '' };
   }
 }
@@ -1528,7 +1520,6 @@ export async function searchMusicAPI(
             // 警告：这可能会导致 UI 显示的来源与实际不符，但能保证有结果
             return await searchMusicAPI(keyword, 'netease', limit);
           } catch (fallbackError) {
-            console.warn('⚠️ [搜索] 后备搜索失败:', fallbackError);
             return [];
           }
         }
@@ -1591,12 +1582,14 @@ export async function searchMusicAPI(
         // 完全匹配歌手名，只返回该歌手的歌曲
         songs = exactArtistMatch;
       } else {
-        // 没有完全匹配歌手名时，只匹配歌曲名包含搜索词的情况
-        // 严格模式：不再使用宽松的歌手名部分匹配（避免"习良5566"匹配"5566"）
+        // 没有完全匹配歌手名时，匹配歌曲名或歌手名包含搜索词的情况
         songs = songs.filter((song) => {
           const songName = (song.name || '').toLowerCase();
-          // 只检查歌曲名是否包含搜索词
-          return songName.includes(keywordLower);
+          const artists = Array.isArray(song.artist) ? song.artist : [song.artist];
+          const artistNames = artists.map((a: string) => (a || '').toLowerCase()).join(' ');
+          
+          // 检查歌曲名或歌手名是否包含搜索词
+          return songName.includes(keywordLower) || artistNames.includes(keywordLower);
         });
       }
 
@@ -1605,7 +1598,7 @@ export async function searchMusicAPI(
 
       return songs;
     } catch (error) {
-      console.error('搜索失败:', error);
+      // 搜索失败
       
       // P0-1 修复: 如果主源搜索失败，自动切换到下一个可用源并重试
       // 仅当不是因为取消请求导致的错误时才重试
@@ -1796,7 +1789,6 @@ export async function parsePlaylistAPI(
 
     return result;
   } catch (error) {
-    console.error('解析歌单失败:', error);
     throw error;
   }
 }
@@ -2112,7 +2104,6 @@ export async function getTopSongs(
     cache.set(cacheKey, songs, CacheCategory.TOP_SONGS);
     return songs;
   } catch (error) {
-    console.error('获取排行榜失败:', error);
     return [];
   }
 }
@@ -2206,7 +2197,6 @@ export async function getArtistInfo(
     cache.set(cacheKey, result, CacheCategory.ARTIST_INFO);
     return result;
   } catch (error) {
-    console.error('获取歌手信息失败:', error);
     return { name: '未知歌手', description: '', songs: [] };
   }
 }
@@ -2266,7 +2256,6 @@ export async function getArtistAlbums(
 
     return normalizedAlbums;
   } catch (error) {
-    console.warn('获取歌手专辑失败:', error);
     return [];
   }
 }
@@ -2304,7 +2293,6 @@ export async function getArtistDesc(artistId: string, source: string = 'netease'
     }
     return desc;
   } catch (error) {
-    console.warn('获取歌手描述失败:', error);
     return '';
   }
 }
@@ -2359,7 +2347,6 @@ export async function getAlbumSongs(albumId: string, source: string = 'netease')
     }
     return normalizedSongs;
   } catch (error) {
-    console.warn('获取专辑歌曲失败:', error);
     return [];
   }
 }
@@ -2400,7 +2387,6 @@ export async function getPersonalFM(): Promise<Song[]> {
     }
     return [];
   } catch (error) {
-    console.warn('获取私人FM失败:', error);
     return [];
   }
 }
@@ -2431,7 +2417,6 @@ export async function getArtistMVs(artistId: string, limit: number = 20): Promis
     }
     return [];
   } catch (error) {
-    console.warn('获取歌手MV失败:', error);
     return [];
   }
 }
@@ -2461,7 +2446,6 @@ export async function getTopArtists(limit: number = 50): Promise<any[]> {
     }
     return [];
   } catch (error) {
-    console.warn('获取热门歌手失败:', error);
     return [];
   }
 }
@@ -2560,7 +2544,6 @@ export async function getAlbumInfo(
     cache.set(cacheKey, result, CacheCategory.ALBUM_INFO);
     return result;
   } catch (error) {
-    console.error('获取专辑信息失败:', error);
     return {
       name: '未知专辑',
       artist: '未知歌手',
@@ -2643,7 +2626,6 @@ export async function getSimilarSongs(
     cache.set(cacheKey, songs, CacheCategory.SEARCH);
     return songs;
   } catch (error) {
-    console.error('获取相似歌曲失败:', error);
     return [];
   }
 }
@@ -2709,7 +2691,6 @@ export async function getComments(
     cache.set(cacheKey, result, CacheCategory.COMMENTS);
     return result;
   } catch (error) {
-    console.error('获取评论失败:', error);
     return { hotComments: [], total: 0 };
   }
 }
@@ -2786,7 +2767,6 @@ export async function getHotPlaylists(
     cache.set(cacheKey, result, CacheCategory.HOT_PLAYLISTS);
     return result;
   } catch (error) {
-    console.error('获取网友精选碟失败:', error);
     return { playlists: [], total: 0, more: false };
   }
 }
@@ -2862,7 +2842,6 @@ export async function getArtistList(
     cache.set(cacheKey, result, CacheCategory.ARTIST_INFO);
     return result;
   } catch (error) {
-    console.error('获取歌手分类列表失败:', error);
     return { artists: [], total: 0, more: false };
   }
 }
@@ -2954,7 +2933,6 @@ export async function getArtistTopSongs(artistId: string): Promise<{
     cache.set(cacheKey, result, CacheCategory.ARTIST_INFO);
     return result;
   } catch (error) {
-    console.error('获取歌手热门歌曲失败:', error);
     return { artist: { id: artistId, name: '未知歌手', picUrl: '' }, songs: [] };
   }
 }
@@ -2969,7 +2947,6 @@ export async function getQrKey(): Promise<string | null> {
     const data = await response.json();
     return data?.data?.unikey || null;
   } catch (error) {
-    console.error('获取二维码Key失败:', error);
     return null;
   }
 }
@@ -2982,7 +2959,6 @@ export async function createQrImage(key: string): Promise<string | null> {
     const data = await response.json();
     return data?.data?.qrimg || null;
   } catch (error) {
-    console.error('生成二维码失败:', error);
     return null;
   }
 }
@@ -3002,7 +2978,6 @@ export async function checkQrStatus(
       cookie: data.cookie,
     };
   } catch (error) {
-    console.error('检查二维码状态失败:', error);
     return { code: 500, message: '网络错误' };
   }
 }
@@ -3036,7 +3011,6 @@ export async function logout(): Promise<boolean> {
     await fetchWithRetry(url);
     return true;
   } catch (error) {
-    console.error('退出登录失败:', error);
     return false;
   }
 }
@@ -3068,7 +3042,6 @@ export async function getDailyRecommendSongs(): Promise<Song[]> {
     }
     return [];
   } catch (error) {
-    console.warn('获取每日推荐歌曲失败:', error);
     return [];
   }
 }
@@ -3100,7 +3073,6 @@ export async function getUserPlaylists(uid: string): Promise<any[]> {
     }
     return [];
   } catch (error) {
-    console.error('获取用户歌单失败:', error);
     return [];
   }
 }
@@ -3394,7 +3366,6 @@ export async function getDJCategories(): Promise<Array<{
     }
     return getBuiltInDJCategories();
   } catch (error) {
-    console.error('获取电台分类失败:', error);
     return getBuiltInDJCategories();
   }
 }
@@ -3436,7 +3407,6 @@ export async function getDJRecommendByType(type: number, limit: number = 30): Pr
     }
     return [];
   } catch (error) {
-    console.error('获取电台分类推荐失败:', error);
     return [];
   }
 }
@@ -3484,7 +3454,6 @@ export async function getHotDJRadios(limit: number = 30, offset: number = 0): Pr
     }
     return { djRadios: [], hasMore: false };
   } catch (error) {
-    console.error('获取热门电台失败:', error);
     return { djRadios: [], hasMore: false };
   }
 }
@@ -3548,7 +3517,6 @@ export async function getDJPrograms(radioId: number, limit: number = 30, offset:
     }
     return { programs: [], count: 0 };
   } catch (error) {
-    console.error('获取电台节目失败:', error);
     return { programs: [], count: 0 };
   }
 }
@@ -3590,7 +3558,6 @@ export async function getPlaylistCategories(): Promise<{
     }
     return getBuiltInPlaylistCategories();
   } catch (error) {
-    console.error('获取歌单分类失败:', error);
     return getBuiltInPlaylistCategories();
   }
 }
@@ -3628,7 +3595,6 @@ export async function getHotPlaylistTags(): Promise<Array<{
     }
     return [];
   } catch (error) {
-    console.error('获取热门歌单标签失败:', error);
     return [];
   }
 }
@@ -3686,7 +3652,6 @@ export async function getHighQualityPlaylists(cat: string = '全部', limit: num
     }
     return { playlists: [], total: 0, more: false };
   } catch (error) {
-    console.error('获取精品歌单失败:', error);
     return { playlists: [], total: 0, more: false };
   }
 }
@@ -3722,7 +3687,6 @@ export async function getHighQualityTags(): Promise<Array<{
     }
     return [];
   } catch (error) {
-    console.error('获取精品歌单标签失败:', error);
     return [];
   }
 }
@@ -3762,7 +3726,6 @@ export async function getRecommendedPlaylists(limit: number = 30): Promise<Array
     }
     return [];
   } catch (error) {
-    console.error('获取推荐歌单失败:', error);
     return [];
   }
 }
@@ -3812,7 +3775,6 @@ export async function getAllToplist(): Promise<{
     }
     return { code: 200, list: getBuiltInToplist() };
   } catch (error) {
-    console.error('获取所有榜单失败:', error);
     return { code: 500, list: getBuiltInToplist() };
   }
 }

@@ -29,7 +29,7 @@ class UnifiedStorageAdapter implements StorageAdapter {
       const stats = await indexedDBStorage.migrateFromLocalStorage();
       this.migrated = true;
     } catch (error) {
-      console.error('数据迁移失败:', error);
+      // Migration failed silently
     }
   }
 
@@ -40,7 +40,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.getItem<T>(key);
     } catch (error) {
-      console.error('存储读取失败:', error);
       return null;
     }
   }
@@ -52,7 +51,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.setItem(key, value);
     } catch (error) {
-      console.error('存储写入失败:', error);
       return false;
     }
   }
@@ -64,7 +62,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.removeItem(key);
     } catch (error) {
-      console.error('存储删除失败:', error);
       return false;
     }
   }
@@ -76,7 +73,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.clear();
     } catch (error) {
-      console.error('存储清空失败:', error);
       return false;
     }
   }
@@ -88,7 +84,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.keys();
     } catch (error) {
-      console.error('获取键列表失败:', error);
       return [];
     }
   }
@@ -100,7 +95,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.getStorageSize();
     } catch (error) {
-      console.error('获取存储大小失败:', error);
       return 0;
     }
   }
@@ -112,7 +106,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.getItems(keys);
     } catch (error) {
-      console.error('批量读取失败:', error);
       return new Map();
     }
   }
@@ -124,7 +117,6 @@ class UnifiedStorageAdapter implements StorageAdapter {
     try {
       return await indexedDBStorage.setItems(items);
     } catch (error) {
-      console.error('批量写入失败:', error);
       return false;
     }
   }
@@ -159,8 +151,8 @@ export function getItemSync<T = any>(key: string): T | null {
 export function setItemSync(key: string, value: any): void {
   syncCache.set(key, value);
   // 异步持久化
-  storageAdapter.setItem(key, value).catch((error) => {
-    console.error('异步持久化失败:', error);
+  storageAdapter.setItem(key, value).catch(() => {
+    // Async persistence failed silently
   });
 }
 
@@ -174,7 +166,7 @@ export async function preloadToCache(keys: string[]): Promise<void> {
       syncCache.set(key, value);
     });
   } catch (error) {
-    console.error('预加载失败:', error);
+    // Preload failed silently
   }
 }
 

@@ -141,7 +141,6 @@ async function playChannel(channel: RadioChannel): Promise<void> {
 
       if (songs.length === 0) {
         // Fallback: search for recommended songs
-        console.warn('私人FM API返回为空，使用搜索降级');
         songs = await api.searchMusicAPI('推荐热门', 'netease', 30);
       }
     } else if (channel.type === 'playlist' && channel.playlistId) {
@@ -151,7 +150,6 @@ async function playChannel(channel: RadioChannel): Promise<void> {
         const playlist = await api.parsePlaylistAPI(channel.playlistId, 'netease');
         songs = playlist.songs;
       } catch (e) {
-        console.error(`解析歌单 ${channel.playlistId} 失败:`, e);
         // Fallback: search by tags
         if (channel.tags.length > 0) {
           songs = await api.searchMusicAPI(channel.tags[0], 'netease', 30);
@@ -173,7 +171,6 @@ async function playChannel(channel: RadioChannel): Promise<void> {
       ui.showError('加载失败', 'radioSongList');
     }
   } catch (error) {
-    console.error('加载电台失败:', error);
     if (statusEl) statusEl.textContent = '连接失败';
     ui.showError('加载失败，请重试', 'radioSongList');
   } finally {
@@ -193,7 +190,7 @@ async function loadMoreFMSongs(): Promise<void> {
       radioPlaylist.push(...moreSongs);
     }
   } catch (error) {
-    console.warn('加载更多FM失败:', error);
+    // Load more failed silently
   }
 }
 
@@ -215,7 +212,6 @@ function showChannelList(): void {
 function renderChannelList(): void {
   const container = document.getElementById('radioChannelList');
   if (!container) {
-    console.error('❌ radioChannelList container not found');
     return;
   }
 

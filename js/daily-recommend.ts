@@ -65,7 +65,6 @@ function initRecommendTab() {
 async function displayRecommendSongs(songs: Song[], containerId: string = 'searchResults') {
   const songsContainer = document.getElementById(containerId);
   if (!songsContainer) {
-    console.error(`❌ 找不到容器: ${containerId}`);
     return;
   }
 
@@ -133,7 +132,7 @@ export async function loadDailyRecommend(forceRefresh: boolean = false, containe
           const randomSongs = shuffleArray(result.songs).slice(0, count);
           allSongs.push(...randomSongs);
         } catch (error) {
-          console.error(`获取榜单 ${source.id} 失败:`, error);
+          // Skip failed source
         }
       }
 
@@ -169,7 +168,6 @@ export async function loadDailyRecommend(forceRefresh: boolean = false, containe
       : `已为你推荐 ${songs.length} 首热门歌曲`;
     showNotification(msg, 'success');
   } catch (error) {
-    console.error('加载每日推荐失败:', error);
     songsContainer.innerHTML = '<div class="error">加载失败，请重试</div>';
     showNotification('加载推荐失败', 'error');
   }
@@ -195,15 +193,13 @@ function cacheRecommend(songs: Song[], isPersonalized: boolean = false) {
   try {
     localStorage.setItem(DAILY_RECOMMEND_CONFIG.STORAGE_KEY, JSON.stringify(cache));
   } catch (error: any) {
-    console.error('缓存推荐失败:', error);
-
     // 处理配额超限
     if (error.name === 'QuotaExceededError' || error.code === 22) {
       try {
         localStorage.removeItem(DAILY_RECOMMEND_CONFIG.STORAGE_KEY);
         localStorage.setItem(DAILY_RECOMMEND_CONFIG.STORAGE_KEY, JSON.stringify(cache));
       } catch (retryError) {
-        console.error('清理后仍然无法缓存:', retryError);
+        // Failed to cache
       }
     }
   }

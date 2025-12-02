@@ -141,7 +141,6 @@ export const storage = {
       const item = localStorage.getItem(key);
       return item ? safeJSONParse(item, defaultValue) : defaultValue;
     } catch (error) {
-      console.warn(`读取 localStorage 失败 (${key}):`, error);
       return defaultValue;
     }
   },
@@ -162,7 +161,6 @@ export const storage = {
         error instanceof DOMException &&
         (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
       ) {
-        console.warn(`localStorage配额已满，正在清理旧数据...`);
 
         // 清理策略: 删除最旧的缓存数据
         try {
@@ -180,20 +178,16 @@ export const storage = {
               localStorage.setItem(key, JSON.stringify(value));
               return true;
             } catch (retryError) {
-              console.error('清理后仍无法保存数据:', retryError);
               return false;
             }
           } else {
-            console.warn('没有可清理的缓存数据');
             return false;
           }
         } catch (cleanError) {
-          console.error('清理缓存失败:', cleanError);
           return false;
         }
       }
 
-      console.warn(`写入 localStorage 失败 (${key}):`, error);
       return false;
     }
   },
@@ -208,7 +202,6 @@ export const storage = {
       localStorage.removeItem(key);
       return true;
     } catch (error) {
-      console.warn(`删除 localStorage 失败 (${key}):`, error);
       return false;
     }
   },
@@ -276,7 +269,6 @@ export function formatErrorMessage(error: unknown, context: string = ''): string
 
     return message;
   } catch (err) {
-    console.warn('格式化错误消息失败:', err);
     return context ? `${context}: 发生错误` : '发生错误';
   }
 }
@@ -442,7 +434,6 @@ export function formatArtist(artist: ArtistInput): string {
       ? stringValue
       : '未知艺术家';
   } catch (error) {
-    console.warn('格式化艺术家信息失败:', error);
     return '未知艺术家';
   }
 }
@@ -469,7 +460,6 @@ export function generateSongFileName(
 
     return `${songName} - ${artist}${extension}`;
   } catch (error) {
-    console.warn('生成文件名失败:', error);
     return `未知歌曲${extension}`;
   }
 }
@@ -503,7 +493,6 @@ function sanitizeFileName(fileName: string): string {
 export async function copyToClipboard(text: string): Promise<boolean> {
   // 优化: 参数验证
   if (!text || typeof text !== 'string') {
-    console.warn('copyToClipboard: 无效的文本参数');
     return false;
   }
 
@@ -517,13 +506,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     // 降级方案：使用 execCommand
     return fallbackCopyToClipboard(text);
   } catch (error) {
-    console.warn('复制到剪贴板失败:', error);
-
     // 如果现代 API 失败，尝试降级方案
     try {
       return fallbackCopyToClipboard(text);
     } catch (fallbackError) {
-      console.error('降级复制方案也失败:', fallbackError);
       return false;
     }
   }
