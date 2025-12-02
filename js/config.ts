@@ -26,10 +26,10 @@ export const API_CONFIG = {
   RETRY_BASE_DELAY: 1000,
   /** API 失败阈值 */
   API_FAILURE_THRESHOLD: 3,
-  /** BUG-006修复: 统一的代理配置 */
-  USE_PROXY: false, // 修复：纯前端项目，禁用代理，直接请求支持CORS的API
+  /** 老王优化: 启用Vercel Edge代理 */
+  USE_PROXY: true,
   /** 需要代理的源列表 */
-  PROXY_SOURCES: [] as const, // 修复：清空代理源列表
+  PROXY_SOURCES: ['netease', 'tencent', 'kugou', 'kuwo', 'bilibili'] as const,
 } as const;
 
 /**
